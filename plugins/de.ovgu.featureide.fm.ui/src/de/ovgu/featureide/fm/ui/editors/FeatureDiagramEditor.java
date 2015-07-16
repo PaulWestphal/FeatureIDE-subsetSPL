@@ -253,37 +253,6 @@ public class FeatureDiagramEditor extends ScrollingGraphicalViewer implements GU
 		getControl().setBackground(FMPropertyManager.getDiagramBackgroundColor());
 		setEditPartFactory(new GraphicalEditPartFactory());
 		
-		addSelectionChangedListener(new ISelectionChangedListener() {
-			
-			@Override
-			public void selectionChanged(SelectionChangedEvent event) {
-				// By selecting a feature figure in the Feature Diagram, the related item inside the
-				// outline should also be selected. Hence, the instance of the outline is fetched and
-				// a method to select a feature is invoked. Due to limitations in terms of package
-				// dependencies, calling the method is done via reflections and might be improved
-				// in further versions.
-				try {
-					final Object src = event.getSource();
-					if (src instanceof FeatureDiagramEditor) {
-						final Object model = ((FeatureDiagramEditor) src).getFocusEditPart().getModel();
-						if (model instanceof Feature) {
-						final Feature selectedFeature = (Feature) model;
-						for (final IViewReference object : PlatformUI.getWorkbench().getActiveWorkbenchWindow().getActivePage().getViewReferences()) {
-							// it's not possible to import Outline.ID due to cycle dependencies
-							if (object.getId().equals("de.ovgu.featureide.ui.views.collaboration.outline.CollaborationOutline")) { 
-								final Method selectFeatureMethod = object.getView(true).getClass().getMethod("selectFeature", Feature.class);
-								selectFeatureMethod.invoke(object.getView(true), selectedFeature);
-								break;
-							}
-						}
-					}
-					}
-				} catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException | NoSuchMethodException | SecurityException e) {
-					e.printStackTrace();
-				}
-			}
-		});
-		
 		rootEditPart = new ScalableFreeformRootEditPart();
 		((ConnectionLayer) rootEditPart.getLayer(LayerConstants.CONNECTION_LAYER)).setAntialias(SWT.ON);
 		setRootEditPart(rootEditPart);

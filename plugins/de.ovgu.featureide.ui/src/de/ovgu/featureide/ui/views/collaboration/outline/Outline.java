@@ -64,6 +64,7 @@ import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Menu;
+import org.eclipse.swt.widgets.Tree;
 import org.eclipse.swt.widgets.TreeItem;
 import org.eclipse.ui.IEditorDescriptor;
 import org.eclipse.ui.IEditorInput;
@@ -593,8 +594,6 @@ public class Outline extends ViewPart implements ICurrentBuildListener, IPropert
 												if (oldModel == null || !oldModel.equals(model)) {
 													viewer.setInput(model);
 													oldModel = model;
-													
-													createTreeItemIndex(viewer);
 												}
 												
 
@@ -635,32 +634,6 @@ public class Outline extends ViewPart implements ICurrentBuildListener, IPropert
 								}
 								return Status.OK_STATUS;
 							}
-							
-							private void loadIntoIndex(TreeItem root) {
-								System.out.println(root);
-								root.setExpanded(true);
-								for (int i = 0; i < root.getItemCount(); i++) {									
-									loadIntoIndex(root.getItem(i));
-								}
-							}
-
-							private void createTreeItemIndex(final TreeViewer viewer) {		
-								treeItemIndex.clear();
-								for (int i = 0; i < viewer.getTree().getItemCount(); i++) {
-									loadIntoIndex(viewer.getTree().getItem(i));
-								}
-								
-//								for (final TreeItem item : viewer) {
-//									System.out.println(item.getItems().length);
-//									for (final TreeItem item2 : (item.getItems())) 
-//											System.out.println(" " + item2);
-//									if (item.getData() instanceof Feature) {
-//										treeItemIndex.put((Feature) item.getData(), item);
-//										System.out.println(((Feature) item.getData()).getName());
-//									}
-//									//createTreeItemIndex(item);
-//								}
-							}
 						};
 						uiJob.setPriority(Job.SHORT);
 						uiJob.schedule();
@@ -670,6 +643,45 @@ public class Outline extends ViewPart implements ICurrentBuildListener, IPropert
 		}
 	}
 	
+	public boolean find (Tree tree, TreeItem item, String searchString) {
+		item.setExpanded(false);
+		System.out.println("find..." +  item.getText() + "..." + ((item.getData() == null) ? "FUCKING NULL" : item.getData().getClass()));
+		;
+		item.setExpanded(true);
+
+		/* check this item */
+		for (int i = 0; i < tree.getColumnCount (); i++) {
+			item.setExpanded(true);
+			String contents = item.getText (i);
+			System.out.println("ITEM " + contents);
+			if ((contents.toUpperCase ().indexOf (searchString.toUpperCase ())) != -1) {
+				tree.setSelection (item);
+				return true;
+			}
+			item.setExpanded(false);
+		}
+
+		if (!item.getExpanded ()) {
+			System.err.println("NOT EXPANDED " + item.getText());
+			return false; /* don't check child items */
+		}
+
+		item.setExpanded(false);
+		/* check child items */
+		int childCount = item.getItemCount ();
+		for (int i = 0; i < childCount; i++) {
+			item.setExpanded(true);
+			TreeItem child = item.getItem (i);
+			item.setExpanded(true);
+			child.setExpanded(true);
+			
+			boolean success = find (tree, child, searchString);
+			if (success) return true;
+		}
+
+		return false;
+	}
+
 	private boolean refreshContent(IFile oldFile, IFile currentFile) {
 		if (CorePlugin.getFeatureProject(currentFile) == null) {
 			sortMethods.setEnabled(false);
@@ -1020,17 +1032,5 @@ public class Outline extends ViewPart implements ICurrentBuildListener, IPropert
 		public Object[] getChildren(Object parentElement) {
 			return null;
 		}
-	}
-
-	public void selectFeature(Feature feature) {
-		viewer.getTree().setSelection(findItemOf(feature));
-		
-	}
-
-	Map<Feature, TreeItem> treeItemIndex = new HashMap<>();
-	
-	private TreeItem findItemOf(Feature feature) {
-		TreeItem featureTreeItem = treeItemIndex.get(feature);
-		return featureTreeItem == null ? viewer.getTree().getTopItem() : featureTreeItem;
 	}
 }
