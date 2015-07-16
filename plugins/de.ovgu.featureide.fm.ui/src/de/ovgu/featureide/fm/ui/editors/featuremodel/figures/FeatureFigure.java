@@ -225,7 +225,7 @@ public class FeatureFigure extends Figure implements GUIDefaults {
 		for (FeatureDiagramExtension extension : FeatureDiagramExtension.getExtensions()) {
 			toolTipContent = extension.extendFeatureFigureToolTip(toolTipContent, this);
 		}
-
+		
 		setToolTip(toolTipContent);
 	}
 

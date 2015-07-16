@@ -82,6 +82,7 @@ public class FeatureEditPart extends AbstractGraphicalEditPart implements NodeEd
 		final FeatureFigure featureFigure = new FeatureFigure(f, f.getFeatureModel());
 		sourceAnchor = featureFigure.getSourceAnchor();
 		targetAnchor = featureFigure.getTargetAnchor();
+		
 		return featureFigure;
 	}
 

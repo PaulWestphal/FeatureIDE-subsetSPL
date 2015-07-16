@@ -20,8 +20,11 @@
  */
 package de.ovgu.featureide.ui.views.collaboration.outline;
 
+import java.beans.PropertyChangeListener;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 import org.eclipse.core.resources.IFile;
@@ -86,6 +89,9 @@ import de.ovgu.featureide.core.fstmodel.FSTMethod;
 import de.ovgu.featureide.core.fstmodel.FSTRole;
 import de.ovgu.featureide.core.fstmodel.preprocessor.FSTDirective;
 import de.ovgu.featureide.core.listeners.ICurrentBuildListener;
+import de.ovgu.featureide.fm.core.Feature;
+import de.ovgu.featureide.fm.core.FeatureModel;
+import de.ovgu.featureide.fm.core.FeatureStatus;
 import de.ovgu.featureide.fm.ui.editors.FeatureModelEditor;
 import de.ovgu.featureide.fm.ui.views.outline.FmOutlinePageContextMenu;
 import de.ovgu.featureide.fm.ui.views.outline.FmTreeContentProvider;
@@ -119,6 +125,7 @@ public class Outline extends ViewPart implements ICurrentBuildListener, IPropert
 	private IFile iFile;
 	private IEditorPart active_editor;
 	private UIJob uiJob;
+	private FeatureModel oldModel;
 
 	private ITreeContentProvider curContentProvider;
 	private OutlineLabelProvider curClabel;
@@ -494,7 +501,7 @@ public class Outline extends ViewPart implements ICurrentBuildListener, IPropert
 		IWorkbenchPage page = getSite().getPage();
 		page.addPartListener(editorListener);
 
-		viewer.setAutoExpandLevel(2);
+		//viewer.setAutoExpandLevel(2);
 		addToolbar(getViewSite().getActionBars().getToolBarManager());
 
 		IEditorPart activeEditor = page.getActiveEditor();
@@ -551,6 +558,7 @@ public class Outline extends ViewPart implements ICurrentBuildListener, IPropert
 	@Override
 	public void setFocus() {
 		viewer.getControl().setFocus();
+		//viewer.setAutoExpandLevel(0);
 	}
 
 	/**
@@ -577,11 +585,18 @@ public class Outline extends ViewPart implements ICurrentBuildListener, IPropert
 									if (viewer.getControl() != null && !viewer.getControl().isDisposed()) {
 										viewer.getControl().setRedraw(false);
 
-										viewer.setContentProvider(curContentProvider);
-										viewer.setLabelProvider(curClabel);
-										if (iFile != null) {
+										viewer.setContentProvider(curContentProvider);	
+										viewer.setLabelProvider(curClabel);				
+										if (iFile != null) {		
 											if ("xml".equalsIgnoreCase(iFile.getFileExtension()) && active_editor instanceof FeatureModelEditor) {
-												viewer.setInput(((FeatureModelEditor) active_editor).getFeatureModel());
+												FeatureModel model = ((FeatureModelEditor) active_editor).getFeatureModel();
+												if (oldModel == null || !oldModel.equals(model)) {
+													viewer.setInput(model);
+													oldModel = model;
+													
+													createTreeItemIndex(viewer);
+												}
+												
 
 												// recreate the context menu in case
 												// we switched to another model
@@ -619,6 +634,32 @@ public class Outline extends ViewPart implements ICurrentBuildListener, IPropert
 									}
 								}
 								return Status.OK_STATUS;
+							}
+							
+							private void loadIntoIndex(TreeItem root) {
+								System.out.println(root);
+								root.setExpanded(true);
+								for (int i = 0; i < root.getItemCount(); i++) {									
+									loadIntoIndex(root.getItem(i));
+								}
+							}
+
+							private void createTreeItemIndex(final TreeViewer viewer) {		
+								treeItemIndex.clear();
+								for (int i = 0; i < viewer.getTree().getItemCount(); i++) {
+									loadIntoIndex(viewer.getTree().getItem(i));
+								}
+								
+//								for (final TreeItem item : viewer) {
+//									System.out.println(item.getItems().length);
+//									for (final TreeItem item2 : (item.getItems())) 
+//											System.out.println(" " + item2);
+//									if (item.getData() instanceof Feature) {
+//										treeItemIndex.put((Feature) item.getData(), item);
+//										System.out.println(((Feature) item.getData()).getName());
+//									}
+//									//createTreeItemIndex(item);
+//								}
 							}
 						};
 						uiJob.setPriority(Job.SHORT);
@@ -979,5 +1020,17 @@ public class Outline extends ViewPart implements ICurrentBuildListener, IPropert
 		public Object[] getChildren(Object parentElement) {
 			return null;
 		}
+	}
+
+	public void selectFeature(Feature feature) {
+		viewer.getTree().setSelection(findItemOf(feature));
+		
+	}
+
+	Map<Feature, TreeItem> treeItemIndex = new HashMap<>();
+	
+	private TreeItem findItemOf(Feature feature) {
+		TreeItem featureTreeItem = treeItemIndex.get(feature);
+		return featureTreeItem == null ? viewer.getTree().getTopItem() : featureTreeItem;
 	}
 }

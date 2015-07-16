@@ -22,6 +22,8 @@ package de.ovgu.featureide.fm.ui.editors;
 
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -33,6 +35,7 @@ import org.eclipse.core.runtime.NullProgressMonitor;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.jobs.Job;
 import org.eclipse.draw2d.ConnectionLayer;
+import org.eclipse.draw2d.FigureCanvas;
 import org.eclipse.gef.DefaultEditDomain;
 import org.eclipse.gef.EditDomain;
 import org.eclipse.gef.EditPartViewer;
@@ -52,12 +55,18 @@ import org.eclipse.jface.action.IMenuListener;
 import org.eclipse.jface.action.IMenuManager;
 import org.eclipse.jface.action.MenuManager;
 import org.eclipse.jface.action.Separator;
+import org.eclipse.jface.viewers.ISelectionChangedListener;
+import org.eclipse.jface.viewers.SelectionChangedEvent;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.ControlEvent;
 import org.eclipse.swt.events.ControlListener;
 import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.widgets.Composite;
+import org.eclipse.ui.IViewReference;
 import org.eclipse.ui.IWorkbenchActionConstants;
+import org.eclipse.ui.IWorkbenchPage;
+import org.eclipse.ui.PlatformUI;
+import org.eclipse.ui.activities.WorkbenchActivityHelper;
 import org.eclipse.ui.progress.UIJob;
 
 import de.ovgu.featureide.fm.core.Constraint;
@@ -104,6 +113,7 @@ import de.ovgu.featureide.fm.ui.editors.featuremodel.actions.calculations.Redund
 import de.ovgu.featureide.fm.ui.editors.featuremodel.actions.calculations.RunManualCalculationsAction;
 import de.ovgu.featureide.fm.ui.editors.featuremodel.actions.calculations.TautologyContraintsCalculationsAction;
 import de.ovgu.featureide.fm.ui.editors.featuremodel.editparts.GraphicalEditPartFactory;
+import de.ovgu.featureide.fm.ui.editors.featuremodel.figures.FeatureFigure;
 import de.ovgu.featureide.fm.ui.editors.featuremodel.layouts.FeatureDiagramLayoutHelper;
 import de.ovgu.featureide.fm.ui.editors.featuremodel.layouts.FeatureDiagramLayoutManager;
 import de.ovgu.featureide.fm.ui.editors.keyhandler.FeatureDiagramEditorKeyHandler;
@@ -242,6 +252,38 @@ public class FeatureDiagramEditor extends ScrollingGraphicalViewer implements GU
 		});
 		getControl().setBackground(FMPropertyManager.getDiagramBackgroundColor());
 		setEditPartFactory(new GraphicalEditPartFactory());
+		
+		addSelectionChangedListener(new ISelectionChangedListener() {
+			
+			@Override
+			public void selectionChanged(SelectionChangedEvent event) {
+				// By selecting a feature figure in the Feature Diagram, the related item inside the
+				// outline should also be selected. Hence, the instance of the outline is fetched and
+				// a method to select a feature is invoked. Due to limitations in terms of package
+				// dependencies, calling the method is done via reflections and might be improved
+				// in further versions.
+				try {
+					final Object src = event.getSource();
+					if (src instanceof FeatureDiagramEditor) {
+						final Object model = ((FeatureDiagramEditor) src).getFocusEditPart().getModel();
+						if (model instanceof Feature) {
+						final Feature selectedFeature = (Feature) model;
+						for (final IViewReference object : PlatformUI.getWorkbench().getActiveWorkbenchWindow().getActivePage().getViewReferences()) {
+							// it's not possible to import Outline.ID due to cycle dependencies
+							if (object.getId().equals("de.ovgu.featureide.ui.views.collaboration.outline.CollaborationOutline")) { 
+								final Method selectFeatureMethod = object.getView(true).getClass().getMethod("selectFeature", Feature.class);
+								selectFeatureMethod.invoke(object.getView(true), selectedFeature);
+								break;
+							}
+						}
+					}
+					}
+				} catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException | NoSuchMethodException | SecurityException e) {
+					e.printStackTrace();
+				}
+			}
+		});
+		
 		rootEditPart = new ScalableFreeformRootEditPart();
 		((ConnectionLayer) rootEditPart.getLayer(LayerConstants.CONNECTION_LAYER)).setAntialias(SWT.ON);
 		setRootEditPart(rootEditPart);
