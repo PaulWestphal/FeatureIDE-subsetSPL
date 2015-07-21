@@ -564,8 +564,7 @@ public class Outline extends ViewPart implements ICurrentBuildListener, IPropert
 	 */
 	private void update(IFile iFile2) {
 		if (viewer != null) {
-			autoShowHideOutlineToolButtons();
-			
+		
 			Control control = viewer.getControl();
 			if (control != null && !control.isDisposed()) {
 				if (filter.isEnabled()) {
@@ -638,25 +637,6 @@ public class Outline extends ViewPart implements ICurrentBuildListener, IPropert
 						uiJob.schedule();
 					}
 				}
-			}
-		}
-	}
-	
-	private void autoShowHideOutlineToolButtons() {
-		
-		final boolean isFeatureOutlien = viewer.getLabelProvider() instanceof FMOutlineLabelProviderWrapper;
-		final boolean isNotAvailableOutlien = viewer.getLabelProvider() instanceof NotAvailableLabelProv;
-		final IToolBarManager toolbarManager = getViewSite().getActionBars().getToolBarManager();
-		for (IContributionItem iAction : toolbarManager.getItems()) {
-			iAction.dispose();
-		}//.removeAll();
-		if (!isNotAvailableOutlien) {
-			toolbarManager.add(collapseAllAction);
-			toolbarManager.add(expandAllAction);
-			if (!isFeatureOutlien) {
-				toolbarManager.add(hideAllFields);
-				toolbarManager.add(hideAllMethods);
-				toolbarManager.add(sortMethods);
 			}
 		}
 	}
