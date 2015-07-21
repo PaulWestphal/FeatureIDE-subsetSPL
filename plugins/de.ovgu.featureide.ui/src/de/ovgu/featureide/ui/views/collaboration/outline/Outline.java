@@ -20,11 +20,8 @@
  */
 package de.ovgu.featureide.ui.views.collaboration.outline;
 
-import java.beans.PropertyChangeListener;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
 
 import org.eclipse.core.resources.IFile;
@@ -42,6 +39,7 @@ import org.eclipse.core.runtime.jobs.Job;
 import org.eclipse.jface.action.Action;
 import org.eclipse.jface.action.ActionContributionItem;
 import org.eclipse.jface.action.IAction;
+import org.eclipse.jface.action.IContributionItem;
 import org.eclipse.jface.action.IMenuCreator;
 import org.eclipse.jface.action.IToolBarManager;
 import org.eclipse.jface.resource.ImageDescriptor;
@@ -90,9 +88,7 @@ import de.ovgu.featureide.core.fstmodel.FSTMethod;
 import de.ovgu.featureide.core.fstmodel.FSTRole;
 import de.ovgu.featureide.core.fstmodel.preprocessor.FSTDirective;
 import de.ovgu.featureide.core.listeners.ICurrentBuildListener;
-import de.ovgu.featureide.fm.core.Feature;
 import de.ovgu.featureide.fm.core.FeatureModel;
-import de.ovgu.featureide.fm.core.FeatureStatus;
 import de.ovgu.featureide.fm.ui.editors.FeatureModelEditor;
 import de.ovgu.featureide.fm.ui.views.outline.FmOutlinePageContextMenu;
 import de.ovgu.featureide.fm.ui.views.outline.FmTreeContentProvider;
@@ -568,6 +564,8 @@ public class Outline extends ViewPart implements ICurrentBuildListener, IPropert
 	 */
 	private void update(IFile iFile2) {
 		if (viewer != null) {
+			autoShowHideOutlineToolButtons();
+			
 			Control control = viewer.getControl();
 			if (control != null && !control.isDisposed()) {
 				if (filter.isEnabled()) {
@@ -587,7 +585,8 @@ public class Outline extends ViewPart implements ICurrentBuildListener, IPropert
 										viewer.getControl().setRedraw(false);
 
 										viewer.setContentProvider(curContentProvider);	
-										viewer.setLabelProvider(curClabel);				
+										viewer.setLabelProvider(curClabel);		
+										
 										if (iFile != null) {		
 											if ("xml".equalsIgnoreCase(iFile.getFileExtension()) && active_editor instanceof FeatureModelEditor) {
 												FeatureModel model = ((FeatureModelEditor) active_editor).getFeatureModel();
@@ -643,45 +642,25 @@ public class Outline extends ViewPart implements ICurrentBuildListener, IPropert
 		}
 	}
 	
-	public boolean find (Tree tree, TreeItem item, String searchString) {
-		item.setExpanded(false);
-		System.out.println("find..." +  item.getText() + "..." + ((item.getData() == null) ? "FUCKING NULL" : item.getData().getClass()));
-		;
-		item.setExpanded(true);
-
-		/* check this item */
-		for (int i = 0; i < tree.getColumnCount (); i++) {
-			item.setExpanded(true);
-			String contents = item.getText (i);
-			System.out.println("ITEM " + contents);
-			if ((contents.toUpperCase ().indexOf (searchString.toUpperCase ())) != -1) {
-				tree.setSelection (item);
-				return true;
+	private void autoShowHideOutlineToolButtons() {
+		
+		final boolean isFeatureOutlien = viewer.getLabelProvider() instanceof FMOutlineLabelProviderWrapper;
+		final boolean isNotAvailableOutlien = viewer.getLabelProvider() instanceof NotAvailableLabelProv;
+		final IToolBarManager toolbarManager = getViewSite().getActionBars().getToolBarManager();
+		for (IContributionItem iAction : toolbarManager.getItems()) {
+			iAction.dispose();
+		}//.removeAll();
+		if (!isNotAvailableOutlien) {
+			toolbarManager.add(collapseAllAction);
+			toolbarManager.add(expandAllAction);
+			if (!isFeatureOutlien) {
+				toolbarManager.add(hideAllFields);
+				toolbarManager.add(hideAllMethods);
+				toolbarManager.add(sortMethods);
 			}
-			item.setExpanded(false);
 		}
-
-		if (!item.getExpanded ()) {
-			System.err.println("NOT EXPANDED " + item.getText());
-			return false; /* don't check child items */
-		}
-
-		item.setExpanded(false);
-		/* check child items */
-		int childCount = item.getItemCount ();
-		for (int i = 0; i < childCount; i++) {
-			item.setExpanded(true);
-			TreeItem child = item.getItem (i);
-			item.setExpanded(true);
-			child.setExpanded(true);
-			
-			boolean success = find (tree, child, searchString);
-			if (success) return true;
-		}
-
-		return false;
 	}
-
+	
 	private boolean refreshContent(IFile oldFile, IFile currentFile) {
 		if (CorePlugin.getFeatureProject(currentFile) == null) {
 			sortMethods.setEnabled(false);
@@ -703,6 +682,7 @@ public class Outline extends ViewPart implements ICurrentBuildListener, IPropert
 			OutlineLabelProvider lp = (OutlineLabelProvider) viewer.getLabelProvider();
 			return lp.refreshContent(oldFile, currentFile);
 		}
+				
 		return false;
 	}
 
@@ -723,6 +703,27 @@ public class Outline extends ViewPart implements ICurrentBuildListener, IPropert
 				}
 				viewer.refresh();
 				labelProvider.refreshContent(iFile, (IFile) viewer.getInput());
+			}
+		}
+	};
+	
+	private final Action collapseAllAction = new Action() {
+		public void run() {
+			viewer.collapseAll();
+			viewer.expandToLevel(2);
+			if (viewer.getLabelProvider() instanceof OutlineLabelProvider) {
+				((OutlineLabelProvider) viewer.getLabelProvider()).colorizeItems(viewer.getTree().getItems(), iFile);
+			}
+		}
+	};
+	
+	private final Action expandAllAction = new Action() {
+		public void run() {
+			viewer.expandAll();
+			// treeExpanded event is not triggered, so we manually have to
+			// call this function
+			if (viewer.getLabelProvider() instanceof OutlineLabelProvider) {
+				((OutlineLabelProvider) viewer.getLabelProvider()).colorizeItems(viewer.getTree().getItems(), iFile);
 			}
 		}
 	};
@@ -782,29 +783,9 @@ public class Outline extends ViewPart implements ICurrentBuildListener, IPropert
 	 * @param iToolBarManager
 	 */
 	public void addToolbar(IToolBarManager iToolBarManager) {
-		Action collapseAllAction = new Action() {
-			public void run() {
-				viewer.collapseAll();
-				viewer.expandToLevel(2);
-				if (viewer.getLabelProvider() instanceof OutlineLabelProvider) {
-					((OutlineLabelProvider) viewer.getLabelProvider()).colorizeItems(viewer.getTree().getItems(), iFile);
-				}
-			}
-		};
+		
 		collapseAllAction.setToolTipText("Collapse All");
 		collapseAllAction.setImageDescriptor(IMG_COLLAPSE);
-
-		Action expandAllAction = new Action() {
-			public void run() {
-				viewer.expandAll();
-				// treeExpanded event is not triggered, so we manually have to
-				// call this function
-				if (viewer.getLabelProvider() instanceof OutlineLabelProvider) {
-					((OutlineLabelProvider) viewer.getLabelProvider()).colorizeItems(viewer.getTree().getItems(), iFile);
-				}
-			}
-		};
-
 		expandAllAction.setToolTipText("Expand All");
 		expandAllAction.setImageDescriptor(IMG_EXPAND);
 		hideAllFields.setToolTipText("Hide Fields");
@@ -813,7 +794,7 @@ public class Outline extends ViewPart implements ICurrentBuildListener, IPropert
 		hideAllMethods.setImageDescriptor(IMG_SHOW_METHODS);
 		sortMethods.setToolTipText("Sort By Feature");
 		sortMethods.setImageDescriptor(IMG_SORT_FEATURES);
-
+		
 		iToolBarManager.add(collapseAllAction);
 		iToolBarManager.add(expandAllAction);
 		iToolBarManager.add(hideAllFields);
