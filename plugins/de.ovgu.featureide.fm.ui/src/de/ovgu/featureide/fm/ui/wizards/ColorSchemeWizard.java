@@ -36,6 +36,8 @@ public class ColorSchemeWizard extends Wizard {
 
 	private final IFeatureModel featureModel;
 
+	private ColorSchemePage colorSchemePage;
+
 	public ColorSchemeWizard(IFeatureModel featureModel) {
 		super();
 		setWindowTitle("Color-Scheme Manager");
@@ -44,11 +46,13 @@ public class ColorSchemeWizard extends Wizard {
 
 	@Override
 	public void addPages() {
-		addPage(new ColorSchemePage(featureModel));
+		colorSchemePage = new ColorSchemePage(featureModel);
+		addPage(colorSchemePage);
 	}
 
 	@Override
 	public boolean performFinish() {
+		colorSchemePage.setActiveColorScheme();
 		return true;
 	}
 

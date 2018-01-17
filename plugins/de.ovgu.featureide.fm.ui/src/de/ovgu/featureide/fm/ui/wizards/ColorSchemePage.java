@@ -27,13 +27,16 @@ import java.util.Collections;
 
 import org.eclipse.jface.wizard.WizardPage;
 import org.eclipse.swt.SWT;
+import org.eclipse.swt.events.FocusAdapter;
+import org.eclipse.swt.events.FocusEvent;
+import org.eclipse.swt.events.KeyEvent;
+import org.eclipse.swt.events.KeyListener;
 import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.events.SelectionListener;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
-import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.List;
 import org.eclipse.swt.widgets.Text;
 import org.eclipse.ui.ISharedImages;
@@ -47,15 +50,16 @@ import de.ovgu.featureide.fm.core.color.FeatureColorManager;
  * Page for {@link ColorSchemeWizard}.
  *
  * @author Sebastian Krieter
+ * @author Paul Westphal
  */
 public class ColorSchemePage extends WizardPage {
 
 	private final IFeatureModel featureModel;
 	private final ArrayList<String> colorSchemeNames;
 
+	private Button newLayoutButton;
 	private List colorSchemeList;
 	private Text newColorSchemeText;
-	private Text selectedColorSchemeText;
 
 	protected ColorSchemePage(IFeatureModel featureModel) {
 		super("SelectColorSchemePage");
@@ -76,39 +80,68 @@ public class ColorSchemePage extends WizardPage {
 	@Override
 	public void createControl(Composite parent) {
 		final Composite composite = new Composite(parent, SWT.NULL);
-		composite.setLayout(new GridLayout(3, false));
+		composite.setLayout(new GridLayout(2, false));
+		Button button;
 
-		// Selected Scheme
-		// Col 1
-		Label label = new Label(composite, SWT.NULL);
-		label.setText("Selected: ");
-		// Col 2
-		selectedColorSchemeText = new Text(composite, SWT.BORDER | SWT.SINGLE | SWT.READ_ONLY);
-		selectedColorSchemeText.setLayoutData(new GridData(SWT.FILL, SWT.BEGINNING, false, false));
-		// Col 3
-		new Label(composite, SWT.NULL);
+		newColorSchemeText = new Text(composite, SWT.BORDER | SWT.SINGLE);
+		newLayoutButton = new Button(composite, SWT.NULL);
+		newColorSchemeText.setLayoutData(new GridData(SWT.FILL, SWT.BEGINNING, false, false));
+		newColorSchemeText.addFocusListener(new FocusAdapter() {
+			Button defaultButton;
 
-		// Existing Color Schemes
-		// Col 1
-		label = new Label(composite, SWT.NULL);
-		label.setText("Existing: ");
-		label.setLayoutData(new GridData(SWT.FILL, SWT.BEGINNING, false, false));
-		// Col 2
+			@Override
+			public void focusGained(FocusEvent e) {
+				defaultButton = getWizard().getContainer().getShell().getDefaultButton();
+				getWizard().getContainer().getShell().setDefaultButton(newLayoutButton);
+			}
+
+			@Override
+			public void focusLost(FocusEvent e) {
+				super.focusLost(e);
+				getWizard().getContainer().getShell().setDefaultButton(defaultButton);
+			}
+		});
+
+		newLayoutButton.setImage(PlatformUI.getWorkbench().getSharedImages().getImage(ISharedImages.IMG_OBJ_ADD));
+		newLayoutButton.addSelectionListener(new SelectionListener() {
+			@Override
+			public void widgetSelected(SelectionEvent e) {
+				createNewColorScheme();
+			}
+
+			@Override
+			public void widgetDefaultSelected(SelectionEvent e) {}
+		});
+
 		colorSchemeList = new List(composite, SWT.FILL | SWT.BORDER | SWT.NO_FOCUS | SWT.SINGLE | SWT.HIDE_SELECTION);
 		colorSchemeList.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
 		colorSchemeList.addSelectionListener(new SelectionListener() {
-
 			@Override
 			public void widgetSelected(SelectionEvent e) {
 				final String[] selection = ((List) e.getSource()).getSelection();
 				if (selection.length > 0) {
 					newColorSchemeText.setText(selection[0]);
+					selectColorScheme();
 				}
 			}
 
 			@Override
 			public void widgetDefaultSelected(SelectionEvent e) {}
 		});
+
+		colorSchemeList.addKeyListener(new KeyListener() {
+			@Override
+			public void keyReleased(KeyEvent e) {}
+
+			@Override
+			public void keyPressed(KeyEvent e) {
+				// Delete selected color scheme when pressing del
+				if (e.keyCode == 127) {
+					deleteColorScheme();
+				}
+			}
+		});
+
 		// Col 3
 		final Composite buttonComposite = new Composite(composite, SWT.NULL);
 		final GridLayout buttonLayout = new GridLayout(1, true);
@@ -116,18 +149,7 @@ public class ColorSchemePage extends WizardPage {
 		buttonLayout.marginHeight = 0;
 		buttonComposite.setLayout(buttonLayout);
 		buttonComposite.setLayoutData(new GridData(SWT.FILL, SWT.BEGINNING, false, false));
-		Button button = new Button(buttonComposite, SWT.NULL);
-		button.setImage(PlatformUI.getWorkbench().getSharedImages().getImage(ISharedImages.IMG_TOOL_BACK));
-		button.addSelectionListener(new SelectionListener() {
 
-			@Override
-			public void widgetSelected(SelectionEvent e) {
-				selectColorScheme();
-			}
-
-			@Override
-			public void widgetDefaultSelected(SelectionEvent e) {}
-		});
 		button = new Button(buttonComposite, SWT.NULL);
 		button.setImage(PlatformUI.getWorkbench().getSharedImages().getImage(ISharedImages.IMG_ETOOL_DELETE));
 		button.addSelectionListener(new SelectionListener() {
@@ -153,34 +175,12 @@ public class ColorSchemePage extends WizardPage {
 			public void widgetDefaultSelected(SelectionEvent e) {}
 		});
 
-		// New Color Scheme
-		// Col 1
-		label = new Label(composite, SWT.NULL);
-		label.setText("Add/Rename: ");
-		// Col 2
-		newColorSchemeText = new Text(composite, SWT.BORDER | SWT.SINGLE);
-		newColorSchemeText.setLayoutData(new GridData(SWT.FILL, SWT.BEGINNING, false, false));
-		// Col 3
-		button = new Button(composite, SWT.NULL);
-		button.setImage(PlatformUI.getWorkbench().getSharedImages().getImage(ISharedImages.IMG_OBJ_ADD));
-		button.addSelectionListener(new SelectionListener() {
-
-			@Override
-			public void widgetSelected(SelectionEvent e) {
-				createNewColorScheme();
-			}
-
-			@Override
-			public void widgetDefaultSelected(SelectionEvent e) {}
-		});
-
 		updateColorSchemeList();
 
 		final ColorScheme currentColorScheme = FeatureColorManager.getCurrentColorScheme(featureModel);
 		if (!currentColorScheme.isDefault()) {
 			final String name = currentColorScheme.getName();
 			selectColorScheme(name);
-			selectedColorSchemeText.setText(name);
 			newColorSchemeText.setText(name);
 		}
 
@@ -192,15 +192,13 @@ public class ColorSchemePage extends WizardPage {
 		if (selection.length > 0) {
 			final String colorSchemeName = selection[0];
 			if (FeatureColorManager.hasColorScheme(featureModel, colorSchemeName)) {
-				FeatureColorManager.setActive(featureModel, colorSchemeName);
-				selectedColorSchemeText.setText(colorSchemeName);
+				newColorSchemeText.setText(colorSchemeName);
 			}
-		} else if (selectedColorSchemeText.getText().equals("")) {
+		} else if (newColorSchemeText.getText().equals("")) {
 			if (colorSchemeList.getItemCount() > 0) {
 				final String first = colorSchemeList.getItem(0);
 				if (FeatureColorManager.hasColorScheme(featureModel, first)) {
-					FeatureColorManager.setActive(featureModel, first);
-					selectedColorSchemeText.setText(first);
+					newColorSchemeText.setText(first);
 				}
 			}
 		}
@@ -235,8 +233,10 @@ public class ColorSchemePage extends WizardPage {
 					colorSchemeList.setSelection(index);
 				} else if (colorSchemeNames.size() > 0) {
 					colorSchemeList.setSelection(index - 1);
+				} else {
+					newColorSchemeText.setText("");
 				}
-				selectedColorSchemeText.setText("");
+				selectColorScheme();
 			}
 		}
 	}
@@ -265,6 +265,17 @@ public class ColorSchemePage extends WizardPage {
 				selectColorScheme();
 			}
 		}
+		newColorSchemeText.setFocus();
 	}
 
+	public void setActiveColorScheme() {
+		final int selectionIndex = colorSchemeList.getSelectionIndex();
+		if (selectionIndex >= 0) {
+			final String collName = colorSchemeList.getSelection()[0];
+			if (FeatureColorManager.hasColorScheme(featureModel, collName)) {
+				FeatureColorManager.setActive(featureModel, collName);
+			}
+		}
+
+	}
 }
