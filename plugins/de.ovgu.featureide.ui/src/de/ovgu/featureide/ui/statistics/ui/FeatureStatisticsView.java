@@ -165,8 +165,8 @@ public class FeatureStatisticsView extends ViewPart implements GUIDefaults {
 
 		@Override
 		public void propertyChange(FeatureIDEEvent evt) {
-			if (EventType.MODEL_LAYOUT_CHANGED != evt.getEventType()) {
-				refresh(false);
+			if ((EventType.MODEL_LAYOUT_CHANGED != evt.getEventType()) && (EventType.ACTIVE_EXPLANATION_CHANGED != evt.getEventType())) {
+				refresh(true);
 			}
 		}
 
@@ -212,7 +212,7 @@ public class FeatureStatisticsView extends ViewPart implements GUIDefaults {
 							final IResource anyFile = ResourceUtil.getResource(currentEditor.getEditorInput());
 							// TODO is refresh really necessary? -> true?
 
-							if (force || (currentInput == null) || !anyFile.getProject().equals(currentInput.getProject())) {
+							if (force || (currentInput == null) || !anyFile.getFullPath().equals(currentInput.getFullPath())) {
 								contentProvider.calculateContent(anyFile, true);
 								currentInput = anyFile;
 							} else {

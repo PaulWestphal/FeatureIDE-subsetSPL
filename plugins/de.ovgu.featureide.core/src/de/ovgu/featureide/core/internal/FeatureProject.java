@@ -165,7 +165,7 @@ public class FeatureProject extends BuilderMarkerHandler implements IFeatureProj
 	/**
 	 * the model representation of the model file
 	 */
-	private final IFileManager<IFeatureModel> featureModelManager;
+	private IFileManager<IFeatureModel> featureModelManager;
 
 	private FSTModel fstModel;
 
@@ -196,7 +196,7 @@ public class FeatureProject extends BuilderMarkerHandler implements IFeatureProj
 
 	private final IProject project;
 
-	private final ModelMarkerHandler<IFile> modelFile;
+	private ModelMarkerHandler<IFile> modelFile = null;
 
 	private IComposerExtensionClass composerExtension = null;
 
@@ -327,19 +327,26 @@ public class FeatureProject extends BuilderMarkerHandler implements IFeatureProj
 		if (project.getFile("mpl.velvet").exists()) {
 			modelFile = new ModelMarkerHandler<>(project.getFile("mpl.velvet"));
 		} else {
-			modelFile = new ModelMarkerHandler<>(project.getFile("model.xml"));
+			if (project.getFile("model.xml").exists()) {
+				modelFile = new ModelMarkerHandler<>(project.getFile("model.xml"));
+			} else {
+				try {
+					for (final IResource res : project.members()) {
+						if (res.getType() == IResource.FILE) {
+							final IFile file = (IFile) res;
+							if (FeatureModelManager.load(Paths.get(file.getLocationURI())).getLastProblems().isEmpty()) {
+								modelFile = new ModelMarkerHandler<>(file);
+								break;
+							}
+						}
+					}
+				} catch (final CoreException e) {
+					LOGGER.logError(e);
+				}
+			}
 		}
 
-		final FeatureModelManager instance = FeatureModelManager.getInstance(Paths.get(modelFile.getModelFile().getLocationURI()));
-		if (instance != null) {
-			featureModelManager = instance;
-		} else {
-			featureModelManager =
-				new VirtualFileManager<IFeatureModel>(DefaultFeatureModelFactory.getInstance().createFeatureModel(), new XmlFeatureModelFormat());
-			LOGGER.logError(new IOException("File " + modelFile + " couldn't be read."));
-		}
-		featureModelManager.addListener(new FeatureModelChangeListner());
-		featureModelManager.read();
+		createFeatureModelManager(modelFile);
 
 		// initialize project structure
 		try {
@@ -404,6 +411,22 @@ public class FeatureProject extends BuilderMarkerHandler implements IFeatureProj
 				LOGGER.logError(e);
 			}
 		}
+	}
+
+	/**
+	 * @param modelFile - The modelFile to be loaded
+	 */
+	public void createFeatureModelManager(ModelMarkerHandler<IFile> modelFile) {
+		final FeatureModelManager instance = FeatureModelManager.getInstance(Paths.get(modelFile.getModelFile().getLocationURI()));
+		if (instance != null) {
+			featureModelManager = instance;
+		} else {
+			featureModelManager =
+				new VirtualFileManager<IFeatureModel>(DefaultFeatureModelFactory.getInstance().createFeatureModel(), new XmlFeatureModelFormat());
+			LOGGER.logError(new IOException("File " + modelFile + " couldn't be read."));
+		}
+		featureModelManager.addListener(new FeatureModelChangeListner());
+		featureModelManager.read();
 	}
 
 	@Override

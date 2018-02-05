@@ -37,6 +37,7 @@ import org.eclipse.core.runtime.QualifiedName;
 import de.ovgu.featureide.core.builder.IComposerExtensionClass;
 import de.ovgu.featureide.core.fstmodel.FSTModel;
 import de.ovgu.featureide.core.signature.ProjectSignatures;
+import de.ovgu.featureide.fm.core.ModelMarkerHandler;
 import de.ovgu.featureide.fm.core.base.IFeatureModel;
 import de.ovgu.featureide.fm.core.io.manager.IFileManager;
 
@@ -224,4 +225,13 @@ public interface IFeatureProject extends IBuilderMarkerHandler {
 	Collection<String> getFalseOptionalConfigurationFeatures();
 
 	Collection<String> getUnusedConfigurationFeatures();
+
+	/**
+	 * Replaces the FeatureModelManager when the original model is removed
+	 *
+	 * @deprecated Should be done internally (Currently only implemented by statistic view which should not modify the feature model manager)
+	 * @param modelFile
+	 */
+	@Deprecated
+	void createFeatureModelManager(ModelMarkerHandler<IFile> modelFile);
 }

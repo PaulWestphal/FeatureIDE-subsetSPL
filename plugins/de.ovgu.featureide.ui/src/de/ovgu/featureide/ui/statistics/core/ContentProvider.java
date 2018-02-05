@@ -24,6 +24,8 @@ import static de.ovgu.featureide.fm.core.localization.StringTable.PROJECT_NAME;
 import static de.ovgu.featureide.fm.core.localization.StringTable.REFRESH_STATISTICS_VIEW;
 import static de.ovgu.featureide.fm.core.localization.StringTable.STATISTICS_OF_THE_FEATURE_MODEL;
 
+import java.nio.file.Paths;
+
 import org.eclipse.core.resources.IResource;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
@@ -38,6 +40,7 @@ import de.ovgu.featureide.core.CorePlugin;
 import de.ovgu.featureide.core.IFeatureProject;
 import de.ovgu.featureide.core.builder.IComposerExtensionClass;
 import de.ovgu.featureide.core.fstmodel.FSTModel;
+import de.ovgu.featureide.fm.core.ModelMarkerHandler;
 import de.ovgu.featureide.fm.core.base.IFeatureModel;
 import de.ovgu.featureide.ui.statistics.core.composite.LazyParent;
 import de.ovgu.featureide.ui.statistics.core.composite.Parent;
@@ -140,6 +143,9 @@ public class ContentProvider implements ITreeContentProvider, StatisticsIds {
 			defaultContent();
 		} else if (hasChanged || (project == null)) {
 			project = newProject;
+			if ((project.getFeatureModelManager().getPath() == null) || !project.getFeatureModelManager().getPath().equals(Paths.get(res.getLocationURI()))) {
+				project.createFeatureModelManager(new ModelMarkerHandler<>(project.getProject().getFile(res.getProjectRelativePath())));
+			}
 			addNodes();
 		}
 	}
@@ -147,7 +153,7 @@ public class ContentProvider implements ITreeContentProvider, StatisticsIds {
 	private synchronized void addNodes() {
 		final IComposerExtensionClass composer = project.getComposer();
 		final FSTModel fstModel = getFSTModel(composer);
-		final IFeatureModel featModel = project.getFeatureModel();
+		final IFeatureModel featModel = project.getFeatureModelManager().editObject();
 		JobDoneListener.getInstance().init(viewer);
 
 		godfather = new Parent("GODFATHER", null);
