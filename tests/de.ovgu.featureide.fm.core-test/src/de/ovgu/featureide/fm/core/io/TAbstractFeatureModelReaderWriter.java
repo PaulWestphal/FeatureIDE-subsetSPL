@@ -30,11 +30,17 @@ import java.io.FileFilter;
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
+import org.prop4j.And;
+import org.prop4j.Node;
+import org.prop4j.Not;
+import org.prop4j.explain.solvers.impl.sat4j.Sat4jSatSolver;
+import org.prop4j.explain.solvers.impl.sat4j.Sat4jSatSolverFactory;
 
 import de.ovgu.featureide.Commons;
 import de.ovgu.featureide.fm.core.base.IConstraint;
@@ -217,7 +223,25 @@ public abstract class TAbstractFeatureModelReaderWriter {
 
 	@Test
 	public void testConstraints() throws FileNotFoundException, UnsupportedModelException {
-		assertEquals(failureMessage, origFm.getConstraints().toString(), newFm.getConstraints().toString());
+		final List<IConstraint> originalConstraints = origFm.getConstraints();
+		final List<IConstraint> newConstraints = newFm.getConstraints();
+		assertEquals(originalConstraints.size(), newConstraints.size());
+		int equalNodesCount = 0;
+		for (final IConstraint oldConstraint : originalConstraints) {
+			for (final IConstraint newConstraint : newConstraints) {
+				final Node implRight = new And(oldConstraint.getNode(), new Not(newConstraint.getNode()));
+				final Node implLeft = new And(newConstraint.getNode(), new Not(oldConstraint.getNode()));
+				final Sat4jSatSolver solverRight = new Sat4jSatSolverFactory().getSatSolver();
+				solverRight.addFormula(implRight);
+				final Sat4jSatSolver solverLeft = new Sat4jSatSolverFactory().getSatSolver();
+				solverLeft.addFormula(implLeft);
+				if (!(solverRight.isSatisfiable() || solverLeft.isSatisfiable())) {
+					equalNodesCount++;
+					break;
+				}
+			}
+		}
+		assertEquals(equalNodesCount, originalConstraints.size());
 	}
 
 	@Test
