@@ -66,6 +66,7 @@ import de.ovgu.featureide.fm.attributes.base.IFeatureAttribute;
 import de.ovgu.featureide.fm.attributes.base.impl.ExtendedFeature;
 import de.ovgu.featureide.fm.attributes.base.impl.ExtendedFeatureModel;
 import de.ovgu.featureide.fm.attributes.base.impl.FeatureAttribute;
+import de.ovgu.featureide.fm.attributes.config.ExtendedConfiguration;
 import de.ovgu.featureide.fm.attributes.view.actions.AddFeatureAttributeAction;
 import de.ovgu.featureide.fm.attributes.view.actions.CollapseAllButFirstLevel;
 import de.ovgu.featureide.fm.attributes.view.actions.ExpandTreeViewer;
@@ -88,6 +89,7 @@ import de.ovgu.featureide.fm.core.base.event.FeatureIDEEvent;
 import de.ovgu.featureide.fm.core.base.event.FeatureIDEEvent.EventType;
 import de.ovgu.featureide.fm.core.base.event.IEventListener;
 import de.ovgu.featureide.fm.core.color.FeatureColorManager;
+import de.ovgu.featureide.fm.core.configuration.Configuration;
 import de.ovgu.featureide.fm.core.io.manager.FeatureModelManager;
 import de.ovgu.featureide.fm.core.io.manager.IFeatureModelManager;
 import de.ovgu.featureide.fm.core.localization.StringTable;
@@ -154,9 +156,9 @@ public class FeatureAttributeView extends ViewPart implements IEventListener {
 	private FeatureAttributeConfigureableEditingSupport configureableEditingSupport;
 
 	public boolean synchToFeatureDiagram = true;
-	public ArrayList<IFeature> selectedManualFeatures;
-	public ArrayList<IFeature> selectedAutomaticFeatures;
-	public ArrayList<IFeature> selection;
+	public List<IFeature> selectedManualFeatures;
+	public List<IFeature> selectedAutomaticFeatures;
+	public List<IFeature> selection;
 	private final ISelectionChangedListener selectionListener = new ISelectionChangedListener() {
 
 		@Override
@@ -463,6 +465,19 @@ public class FeatureAttributeView extends ViewPart implements IEventListener {
 		treeViewer.getControl().setFocus();
 	}
 
+	private void setSelectionForConfiguration(Configuration config) {
+		clearSelection();
+		if (config instanceof ExtendedConfiguration) {
+			selectedAutomaticFeatures = config.getSelectedFeatures();
+			selectedManualFeatures = config.getSelectedFeatures();
+			selection = config.getSelectedFeatures();
+			treeViewer.refresh();
+			for (IFeature iFeature : selectedAutomaticFeatures) {
+				treeViewer.setExpandedState(iFeature, true);
+			}
+		}
+	}
+
 	private void setEditorContent(IWorkbenchPart activeWorkbenchPart) {
 		if (activeWorkbenchPart == null) {
 			clear();
@@ -489,12 +504,14 @@ public class FeatureAttributeView extends ViewPart implements IEventListener {
 		} else if ((activeWorkbenchPart instanceof ConfigurationEditor) && (currentEditor != activeWorkbenchPart)) {
 			final ConfigurationEditor editor = (ConfigurationEditor) activeWorkbenchPart;
 			currentEditor = activeWorkbenchPart;
+			setSelectionForConfiguration(editor.getConfigurationManager().getObject());
+			editor.getConfigurationManager().addListener(this);
 			editor.addPageChangedListener(pageListener);
 			setEditorContentByPage(editor.getSelectedPage());
 		} else if ((activeWorkbenchPart instanceof FeatureModelEditor) && (currentEditor != activeWorkbenchPart)
 			&& !(activeWorkbenchPart.getSite() instanceof FeatureDiagramEditor)) {
-			setEditorContent(null);
-		}
+				setEditorContent(null);
+			}
 	}
 
 	private void setEditorContentByPage(Object page) {
@@ -574,7 +591,11 @@ public class FeatureAttributeView extends ViewPart implements IEventListener {
 	public void propertyChange(FeatureIDEEvent event) {
 		if (event.getEventType() == EventType.MODEL_DATA_SAVED) {
 			if (!treeViewer.getControl().isDisposed()) {
-				treeViewer.refresh(fmManager.getVarObject());
+				if (event.getSource() instanceof ExtendedConfiguration) {
+					setSelectionForConfiguration((Configuration) event.getSource());
+				} else {
+					treeViewer.refresh(fmManager.getVarObject());
+				}
 			}
 		} else if (event.getEventType() == EventType.FEATURE_ATTRIBUTE_CHANGED) {
 			if (event.getOldValue() != null && event.getOldValue() instanceof Boolean && event.getNewValue() != null
