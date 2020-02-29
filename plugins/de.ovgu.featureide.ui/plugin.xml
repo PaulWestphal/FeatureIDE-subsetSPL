@@ -1163,6 +1163,13 @@
 					</reference>
 				</visibleWhen>
 			</dynamic>
+   <command
+         commandId="de.ovgu.featureide.ui.newpartialconfig"
+         id="de.ovgu.featureide.fm.ui.actions.NewPartialProjectWizard"
+         label="Create Partial Project"
+         style="push"
+         tooltip="tooltip test">
+   </command>
 		</menuContribution>
 
 		<menuContribution
@@ -1304,6 +1311,11 @@
 				id="de.ovgu.featureide.ui.visualization.command.featurerelations"
 				name="Feature Relations Graph">
 		</command>
+  <command
+        defaultHandler="de.ovgu.featureide.ui.handlers.NewPartialProjectWizardHandler"
+        id="de.ovgu.featureide.ui.newpartialconfig"
+        name="NewPartialProjectWizard">
+  </command>
 	</extension>
 	<extension
 			point="org.eclipse.ui.handlers">
