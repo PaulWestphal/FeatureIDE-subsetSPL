@@ -20,6 +20,9 @@
  */
 package de.ovgu.featureide.ui.actions;
 
+import java.io.File;
+
+import org.eclipse.core.resources.IWorkspace;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.ui.wizards.newresource.BasicNewProjectResourceWizard;
 
@@ -37,7 +40,28 @@ public class NewPartialProjectWizard extends BasicNewProjectResourceWizard {
 	private final static Image colorImage = FMUIPlugin.getDefault().getImageDescriptor("icons/FeatureIconSmall.ico").createImage();
 	public static final String ID = UIPlugin.PLUGIN_ID + ".NewPartialProjectWizard";
 
-	public NewPartialProjectWizard(IFeatureProject featureproject) {
+	IFeatureProject featureProjectBase;
+	File projectPath;
 
+	public NewPartialProjectWizard(IFeatureProject featureproject) {
+		featureProjectBase = featureproject;
+		findProjectPathFile();
+	}
+
+	private void findProjectPathFile() {
+		final IWorkspace workspace = featureProjectBase.getProject().getWorkspace();
+
+		final File workspaceDirectory = workspace.getRoot().getLocation().toFile();
+
+		final File projectPathFile = new File(workspaceDirectory.toString() + featureProjectBase.getProject().getFullPath().toOSString());
+
+		projectPath = projectPathFile;
+	}
+
+	@Override
+	public boolean performFinish() {
+
+		super.performFinish();
+		return true;
 	}
 }
