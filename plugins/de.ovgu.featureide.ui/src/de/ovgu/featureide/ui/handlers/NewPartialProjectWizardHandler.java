@@ -20,7 +20,9 @@
  */
 package de.ovgu.featureide.ui.handlers;
 
+import org.eclipse.jface.viewers.IStructuredSelection;
 import org.eclipse.jface.wizard.WizardDialog;
+import org.eclipse.ui.IWorkbenchWindow;
 import org.eclipse.ui.PlatformUI;
 
 import de.ovgu.featureide.core.IFeatureProject;
@@ -41,6 +43,11 @@ public class NewPartialProjectWizardHandler extends AFeatureProjectHandler {
 	@Override
 	protected void singleAction(IFeatureProject featureProject) {
 		final NewPartialProjectWizard wizard = new NewPartialProjectWizard(featureProject);
+
+		final IWorkbenchWindow window = PlatformUI.getWorkbench().getActiveWorkbenchWindow();
+		final IStructuredSelection selection = (IStructuredSelection) window.getSelectionService().getSelection("org.eclipse.jdt.ui.PackageExplorer");
+
+		wizard.init(PlatformUI.getWorkbench(), selection);
 		new WizardDialog(PlatformUI.getWorkbench().getActiveWorkbenchWindow().getShell(), wizard).open();
 	}
 

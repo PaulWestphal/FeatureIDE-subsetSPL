@@ -60,8 +60,9 @@ public class NewPartialProjectWizard extends BasicNewProjectResourceWizard {
 
 	@Override
 	public boolean performFinish() {
-
-		super.performFinish();
+		if (super.performFinish() == false) {
+			return false;
+		}
 		return true;
 	}
 }
