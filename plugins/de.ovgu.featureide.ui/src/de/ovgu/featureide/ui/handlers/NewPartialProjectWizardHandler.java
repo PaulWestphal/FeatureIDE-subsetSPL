@@ -26,7 +26,7 @@ import org.eclipse.ui.IWorkbenchWindow;
 import org.eclipse.ui.PlatformUI;
 
 import de.ovgu.featureide.core.IFeatureProject;
-import de.ovgu.featureide.ui.actions.NewPartialProjectWizard;
+import de.ovgu.featureide.ui.actions.NewPartialFeatureProjectWizard;
 import de.ovgu.featureide.ui.handlers.base.AFeatureProjectHandler;
 
 /**
@@ -42,7 +42,7 @@ public class NewPartialProjectWizardHandler extends AFeatureProjectHandler {
 	 */
 	@Override
 	protected void singleAction(IFeatureProject featureProject) {
-		final NewPartialProjectWizard wizard = new NewPartialProjectWizard(featureProject);
+		final NewPartialFeatureProjectWizard wizard = new NewPartialFeatureProjectWizard(featureProject);
 
 		final IWorkbenchWindow window = PlatformUI.getWorkbench().getActiveWorkbenchWindow();
 		final IStructuredSelection selection = (IStructuredSelection) window.getSelectionService().getSelection("org.eclipse.jdt.ui.PackageExplorer");
