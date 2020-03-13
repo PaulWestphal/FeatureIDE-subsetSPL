@@ -20,6 +20,12 @@
  */
 package de.ovgu.featureide.ui.actions;
 
+import java.io.IOException;
+import java.nio.file.FileVisitResult;
+import java.nio.file.Files;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.attribute.BasicFileAttributes;
+
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IWorkspace;
 import org.eclipse.core.runtime.CoreException;
@@ -48,7 +54,7 @@ public class NewPartialFeatureProjectWizard extends BasicNewProjectResourceWizar
 	IPath baseProjectPath;
 	IPath newProjectPath;
 	private DefaultNewFeatureProjectWizardExtension wizardExtension = null;
-	String compositionToolID;
+	String compositionToolID = "de.ovgu.featureide.preprocessor.antenna";
 
 	public NewPartialFeatureProjectWizard(IFeatureProject featureproject) {
 		baseProject = featureproject;
@@ -78,6 +84,8 @@ public class NewPartialFeatureProjectWizard extends BasicNewProjectResourceWizar
 	@Override
 	public boolean performFinish() {
 
+		System.out.println(System.getProperty("java.version"));
+
 		if (wizardExtension == null) {
 			wizardExtension = new DefaultNewFeatureProjectWizardExtension();
 			wizardExtension.setWizard(this);
@@ -105,9 +113,10 @@ public class NewPartialFeatureProjectWizard extends BasicNewProjectResourceWizar
 	}
 
 	private void enhanceProject(IProject newProject) {
-		final String newSourcePath = newProjectPath + removeBaseProjectPathPrefix(baseProject.getSourcePath());
-		final String newConfigPath = newProjectPath + removeBaseProjectPathPrefix(baseProject.getConfigPath());
-		final String newBuildPath = newProjectPath + removeBaseProjectPathPrefix(baseProject.getBuildPath());
+		// TODO: stringgebastel stabiler machen
+		final String newSourcePath = removeBaseProjectPathPrefix(baseProject.getSourcePath()).replace("\\", "/").substring(1);
+		final String newConfigPath = removeBaseProjectPathPrefix(baseProject.getConfigPath()).replace("\\", "/").substring(1);
+		final String newBuildPath = removeBaseProjectPathPrefix(baseProject.getBuildPath()).replace("\\", "/").substring(1);
 
 		try {
 			wizardExtension.enhanceProject(newProject, compositionToolID, newSourcePath, newConfigPath, newBuildPath, false, false);
@@ -124,6 +133,29 @@ public class NewPartialFeatureProjectWizard extends BasicNewProjectResourceWizar
 	}
 
 	private void copyBaseProject() {
+		final java.nio.file.Path targetPath = java.nio.file.Paths.get(newProjectPath.toOSString());
+		final java.nio.file.Path sourcePath = java.nio.file.Paths.get(baseProjectPath.toOSString());
 
+		try {
+			Files.walkFileTree(sourcePath, new SimpleFileVisitor<java.nio.file.Path>() {
+
+				@Override
+				public FileVisitResult preVisitDirectory(final java.nio.file.Path dir, final BasicFileAttributes attrs) throws IOException {
+					Files.createDirectories(targetPath.resolve(sourcePath.relativize(dir)));
+					return FileVisitResult.CONTINUE;
+				}
+
+				@Override
+				public FileVisitResult visitFile(final java.nio.file.Path file, final BasicFileAttributes attrs) throws IOException {
+					// TODO: Ausnahme für classpath und project
+					if (!(file.endsWith(".classpath") || file.endsWith(".project"))) {
+						Files.copy(file, targetPath.resolve(sourcePath.relativize(file)));
+					}
+					return FileVisitResult.CONTINUE;
+				}
+			});
+		} catch (final IOException e) {
+			UIPlugin.getDefault().logError(e);
+		}
 	}
 }
