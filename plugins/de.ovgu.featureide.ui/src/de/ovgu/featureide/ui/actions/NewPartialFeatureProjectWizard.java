@@ -36,6 +36,8 @@ import org.eclipse.ui.wizards.newresource.BasicNewProjectResourceWizard;
 
 import de.ovgu.featureide.core.IFeatureProject;
 import de.ovgu.featureide.core.wizardextension.DefaultNewFeatureProjectWizardExtension;
+import de.ovgu.featureide.fm.core.io.manager.ConfigurationManager;
+import de.ovgu.featureide.fm.core.io.manager.FeatureModelManager;
 import de.ovgu.featureide.fm.ui.FMUIPlugin;
 import de.ovgu.featureide.fm.ui.editors.FeatureModelEditor;
 import de.ovgu.featureide.ui.UIPlugin;
@@ -54,10 +56,11 @@ public class NewPartialFeatureProjectWizard extends BasicNewProjectResourceWizar
 	IPath baseProjectPath;
 	IPath newProjectPath;
 	private DefaultNewFeatureProjectWizardExtension wizardExtension = null;
-	String compositionToolID = "de.ovgu.featureide.preprocessor.antenna";
+	String compositionToolID;
 
 	public NewPartialFeatureProjectWizard(IFeatureProject featureproject) {
 		baseProject = featureproject;
+		compositionToolID = baseProject.getComposerID();
 	}
 
 	@Override
@@ -157,5 +160,14 @@ public class NewPartialFeatureProjectWizard extends BasicNewProjectResourceWizar
 		} catch (final IOException e) {
 			UIPlugin.getDefault().logError(e);
 		}
+
+		final java.nio.file.Path fmPath =
+			java.nio.file.Paths.get(newProjectPath.toOSString() + removeBaseProjectPathPrefix(baseProject.getFeatureModel().getSourceFile().toString()));
+
+		baseProject.getComposer().getFeatureModelFormat();
+		FeatureModelManager.registerExistingFeatureModel(fmPath, baseProject.getComposer().getFeatureModelFormat());
+
+		final java.nio.file.Path configPath = java.nio.file.Paths.get(newProjectPath.toOSString() + removeBaseProjectPathPrefix(baseProject.getConfigPath()));
+		ConfigurationManager.getInstance(configPath);
 	}
 }

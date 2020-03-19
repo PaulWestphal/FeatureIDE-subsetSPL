@@ -56,6 +56,10 @@ public class FeatureModelManager extends AFileManager<IFeatureModel> implements 
 		return getOrCreateInstance(path, FeatureModelManager.class, null);
 	}
 
+	public static void registerExistingFeatureModel(Path path, IFeatureModelFormat format) {
+		getOrCreateInstance(path, FeatureModelManager.class, format);
+	}
+
 	public static boolean isFileSupported(Path filePath) {
 		return FMFormatManager.getInstance().hasFormat(filePath);
 	}
