@@ -34,6 +34,7 @@ import org.eclipse.core.runtime.Path;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.ui.wizards.newresource.BasicNewProjectResourceWizard;
 
+import de.ovgu.featureide.core.CorePlugin;
 import de.ovgu.featureide.core.IFeatureProject;
 import de.ovgu.featureide.core.wizardextension.DefaultNewFeatureProjectWizardExtension;
 import de.ovgu.featureide.fm.core.io.manager.ConfigurationManager;
@@ -52,11 +53,12 @@ public class NewPartialFeatureProjectWizard extends BasicNewProjectResourceWizar
 	private final static Image colorImage = FMUIPlugin.getDefault().getImageDescriptor("icons/FeatureIconSmall.ico").createImage();
 	public static final String ID = UIPlugin.PLUGIN_ID + ".NewPartialProjectWizard";
 
-	IFeatureProject baseProject;
-	IPath baseProjectPath;
-	IPath newProjectPath;
+	private final IFeatureProject baseProject;
+	private IPath baseProjectPath;
+	private IPath newProjectPath;
 	private DefaultNewFeatureProjectWizardExtension wizardExtension = null;
-	String compositionToolID;
+	private final String compositionToolID;
+	private TemporaryClassName tempClassName = null;
 
 	public NewPartialFeatureProjectWizard(IFeatureProject featureproject) {
 		baseProject = featureproject;
@@ -107,9 +109,12 @@ public class NewPartialFeatureProjectWizard extends BasicNewProjectResourceWizar
 			baseProject.getSourcePath();
 			final IProject newProject = getNewProject();
 			enhanceProject(newProject);
-			// open editor
+
 			UIPlugin.getDefault().openEditor(FeatureModelEditor.ID, newProject.getFile("model.xml"));
 
+			final IFeatureProject newFeatureProject = CorePlugin.getFeatureProject(newProject);
+			tempClassName = new TemporaryClassName(newFeatureProject);
+			tempClassName.transformProject();
 		}
 
 		return true;
@@ -150,7 +155,7 @@ public class NewPartialFeatureProjectWizard extends BasicNewProjectResourceWizar
 
 				@Override
 				public FileVisitResult visitFile(final java.nio.file.Path file, final BasicFileAttributes attrs) throws IOException {
-					// TODO: Ausnahme für classpath und project
+					// exception for classpath and project files
 					if (!(file.endsWith(".classpath") || file.endsWith(".project"))) {
 						Files.copy(file, targetPath.resolve(sourcePath.relativize(file)));
 					}
