@@ -18,13 +18,16 @@
  *
  * See http://featureide.cs.ovgu.de/ for further information.
  */
-package de.ovgu.featureide.ui.actions;
+package de.ovgu.featureide.ui.wizards;
 
 import java.io.IOException;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IWorkspace;
@@ -32,6 +35,7 @@ import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.Path;
 import org.eclipse.swt.graphics.Image;
+import org.eclipse.swt.widgets.Shell;
 import org.eclipse.ui.wizards.newresource.BasicNewProjectResourceWizard;
 
 import de.ovgu.featureide.core.CorePlugin;
@@ -42,6 +46,7 @@ import de.ovgu.featureide.fm.core.io.manager.FeatureModelManager;
 import de.ovgu.featureide.fm.ui.FMUIPlugin;
 import de.ovgu.featureide.fm.ui.editors.FeatureModelEditor;
 import de.ovgu.featureide.ui.UIPlugin;
+import de.ovgu.featureide.ui.actions.TemporaryClassName;
 
 /**
  * TODO description
@@ -54,15 +59,40 @@ public class NewPartialFeatureProjectWizard extends BasicNewProjectResourceWizar
 	public static final String ID = UIPlugin.PLUGIN_ID + ".NewPartialProjectWizard";
 
 	private final IFeatureProject baseProject;
-	private IPath baseProjectPath;
+	private final IPath baseProjectPath;
 	private IPath newProjectPath;
 	private DefaultNewFeatureProjectWizardExtension wizardExtension = null;
 	private final String compositionToolID;
 	private TemporaryClassName tempClassName = null;
 
+	private ConfigurationSelectionPage page;
+
 	public NewPartialFeatureProjectWizard(IFeatureProject featureproject) {
 		baseProject = featureproject;
+		baseProjectPath = getBaseProjectPath();
 		compositionToolID = baseProject.getComposerID();
+	}
+
+	@Override
+	public void addPages() {
+
+		final String configPath = baseProject.getConfigPath().replace("\\", "/") + "/";
+
+		final List<java.nio.file.Path> configurationPaths = baseProject.getAllConfigurations();
+		final ArrayList<String> configNames = new ArrayList<>();
+		configurationPaths.forEach((configName) -> {
+			configNames.add(configName.toString().replace("\\", "/").replace(configPath, ""));
+		});
+
+		final String currentConfig = baseProject.getCurrentConfiguration().toString().replace("\\", "/").replace(configPath, "");
+
+		page = new ConfigurationSelectionPage(configNames, currentConfig);
+		final Shell shell = getShell();
+		if (shell != null) {
+			shell.setImage(colorImage);
+		}
+		addPage(page);
+		super.addPages();
 	}
 
 	@Override
@@ -100,7 +130,6 @@ public class NewPartialFeatureProjectWizard extends BasicNewProjectResourceWizar
 			return false;
 		}
 
-		baseProjectPath = getBaseProjectPath();
 		newProjectPath = getNewProjectPath();
 
 		copyBaseProject();
@@ -113,7 +142,9 @@ public class NewPartialFeatureProjectWizard extends BasicNewProjectResourceWizar
 			UIPlugin.getDefault().openEditor(FeatureModelEditor.ID, newProject.getFile("model.xml"));
 
 			final IFeatureProject newFeatureProject = CorePlugin.getFeatureProject(newProject);
-			tempClassName = new TemporaryClassName(newFeatureProject);
+
+			final java.nio.file.Path configPath = Paths.get(baseProject.getConfigPath() + "/" + page.getSelectedConfiguration());
+			tempClassName = new TemporaryClassName(newFeatureProject, configPath);
 			tempClassName.transformProject();
 		}
 
@@ -141,6 +172,8 @@ public class NewPartialFeatureProjectWizard extends BasicNewProjectResourceWizar
 	}
 
 	private void copyBaseProject() {
+		// TODO: configs registrieren damit sie ausgewählt werden können
+
 		final java.nio.file.Path targetPath = java.nio.file.Paths.get(newProjectPath.toOSString());
 		final java.nio.file.Path sourcePath = java.nio.file.Paths.get(baseProjectPath.toOSString());
 
@@ -172,7 +205,8 @@ public class NewPartialFeatureProjectWizard extends BasicNewProjectResourceWizar
 		baseProject.getComposer().getFeatureModelFormat();
 		FeatureModelManager.registerExistingFeatureModel(fmPath, baseProject.getComposer().getFeatureModelFormat());
 
-		final java.nio.file.Path configPath = java.nio.file.Paths.get(newProjectPath.toOSString() + removeBaseProjectPathPrefix(baseProject.getConfigPath()));
+		final java.nio.file.Path configPath = java.nio.file.Paths
+				.get(newProjectPath.toOSString() + removeBaseProjectPathPrefix(baseProject.getConfigPath()) + "/" + page.getSelectedConfiguration());
 		ConfigurationManager.getInstance(configPath);
 	}
 }

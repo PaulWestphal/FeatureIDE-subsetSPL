@@ -22,8 +22,10 @@ package de.ovgu.featureide.ui.actions;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 
 import de.ovgu.featureide.core.IFeatureProject;
+import de.ovgu.featureide.fm.core.base.IFeature;
 import de.ovgu.featureide.fm.core.base.IFeatureModel;
 import de.ovgu.featureide.fm.core.configuration.Configuration;
 import de.ovgu.featureide.fm.core.io.manager.ConfigurationManager;
@@ -41,25 +43,50 @@ public class TemporaryClassName {
 	// private ComposerSpecificExtension compExtension;
 	private final IFeatureProject project;
 	private Configuration config;
+	private IFeatureModel slicedModel;
 
-	public TemporaryClassName(IFeatureProject project) {
+	private final Path configPath;
+
+	public TemporaryClassName(IFeatureProject project, Path configPath) {
 		this.project = project;
+		this.configPath = configPath;
 	}
 
 	public <T> void transformProject() {
 		config = getConfiguration();
-		final IFeatureModel slicedModel =
-			LongRunningWrapper.runMethod(new SliceFeatureModel(project.getFeatureModel(), config.getSelectedFeatureNames(), true));
+
+		final ArrayList<String> featureNameList = getFeatureNames();
+		slicedModel = LongRunningWrapper.runMethod(new SliceFeatureModel(project.getFeatureModel(), featureNameList, true));
+		setSelectedFeaturesMandatory();
 
 		final Path fmPath = Paths.get(project.getProject().getLocation().toOSString().replace("\\", "/") + "/fmfile.xml");
 		FeatureModelManager.save(slicedModel, fmPath, project.getComposer().getFeatureModelFormat());
 	}
 
-	private Configuration getConfiguration() {
-		final Path path = Paths.get(project.getCurrentConfiguration().toUri());
+	private void setSelectedFeaturesMandatory() {
+		final ArrayList<String> featureNameList = new ArrayList<String>();
+		featureNameList.addAll(config.getSelectedFeatureNames());
 
-		if (ConfigurationManager.isFileSupported(path)) {
-			return config = ConfigurationManager.getInstance(path).getObject();
+		featureNameList.forEach((selectedFeatureName) -> {
+			final IFeature feature = slicedModel.getFeature(selectedFeatureName);
+			if (feature != null) {
+				feature.getStructure().setMandatory(true);
+			}
+		});
+
+		return;
+	}
+
+	private ArrayList<String> getFeatureNames() {
+		final ArrayList<String> featureNameList = new ArrayList<String>();
+		featureNameList.addAll(config.getSelectedFeatureNames());
+		featureNameList.addAll(config.getUndefinedFeatureNames());
+		return featureNameList;
+	}
+
+	private Configuration getConfiguration() {
+		if (ConfigurationManager.isFileSupported(configPath)) {
+			return config = ConfigurationManager.getInstance(configPath).getObject();
 		} else {
 			return null;
 		}

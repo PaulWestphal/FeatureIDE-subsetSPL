@@ -26,8 +26,8 @@ import org.eclipse.ui.IWorkbenchWindow;
 import org.eclipse.ui.PlatformUI;
 
 import de.ovgu.featureide.core.IFeatureProject;
-import de.ovgu.featureide.ui.actions.NewPartialFeatureProjectWizard;
 import de.ovgu.featureide.ui.handlers.base.AFeatureProjectHandler;
+import de.ovgu.featureide.ui.wizards.NewPartialFeatureProjectWizard;
 
 /**
  * TODO description
