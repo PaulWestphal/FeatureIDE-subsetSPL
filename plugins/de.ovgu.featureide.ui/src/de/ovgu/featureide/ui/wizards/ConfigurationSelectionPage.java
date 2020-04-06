@@ -90,16 +90,9 @@ public class ConfigurationSelectionPage extends WizardPage {
 			@Override
 			public void widgetDefaultSelected(SelectionEvent e) {}
 		});
+		addConfigurationsToTree();
 
 		setPageComplete(true);
-	}
-
-	@Override
-	public void setVisible(boolean visible) {
-		if (visible) {
-			addConfigurationsToTree();
-		}
-		super.setVisible(visible);
 	}
 
 	private void addConfigurationsToTree() {
