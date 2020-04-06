@@ -1228,26 +1228,6 @@
 				</visibleWhen>
 			</command>
 		</menuContribution>
-		<menuContribution
-				allPopups="false"
-				locationURI="popup:de.ovgu.featureide.fm.ui.menus.popupMenu?after=de.ovgu.featureide.fm.ui.menus.popupMenu.submenus">
-			<menu
-					icon="icons/FeatureIconSmall.ico"
-					id="popup:de.ovgu.featureide.fm.ui.menus.popupMenu.visualizations"
-					label="Visualization">
-				<visibleWhen
-						checkEnabled="false">
-					<reference
-							definitionId="de.ovgu.featureide.ui.expressions.containsOnlyProjects">
-					</reference>
-				</visibleWhen>
-				<command
-						commandId="de.ovgu.featureide.ui.visualization.command.featurerelations"
-						label="Feature Relations Graph"
-						style="push">
-				</command>
-			</menu>
-		</menuContribution>
 	</extension>
 	<extension
 			point="org.eclipse.ui.commands">
@@ -1306,16 +1286,13 @@
 				id="de.ovgu.featureide.fm.ui.colorscheme"
 				name="Colorscheme">
 		</command>
-		<command
-				defaultHandler="de.ovgu.featureide.ui.visualization.ShowFeatureRelationsGraphCommandHandler"
-				id="de.ovgu.featureide.ui.visualization.command.featurerelations"
-				name="Feature Relations Graph">
-		</command>
+
   <command
         defaultHandler="de.ovgu.featureide.ui.handlers.NewPartialProjectWizardHandler"
         id="de.ovgu.featureide.ui.newpartialconfig"
         name="NewPartialProjectWizard">
   </command>
+
 	</extension>
 	<extension
 			point="org.eclipse.ui.handlers">
