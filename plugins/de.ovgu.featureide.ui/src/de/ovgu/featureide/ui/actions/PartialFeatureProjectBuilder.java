@@ -38,7 +38,7 @@ import de.ovgu.featureide.fm.core.job.SliceFeatureModel;
  *
  * @author Paul Westphal
  */
-public class TemporaryClassName {
+public class PartialFeatureProjectBuilder {
 
 	// private ComposerSpecificExtension compExtension;
 	private final IFeatureProject project;
@@ -47,7 +47,7 @@ public class TemporaryClassName {
 
 	private final Path configPath;
 
-	public TemporaryClassName(IFeatureProject project, Path configPath) {
+	public PartialFeatureProjectBuilder(IFeatureProject project, Path configPath) {
 		this.project = project;
 		this.configPath = configPath;
 	}
