@@ -18,7 +18,7 @@
  *
  * See http://featureide.cs.ovgu.de/ for further information.
  */
-package de.ovgu.featureide.ui.actions;
+package de.ovgu.featureide.core.builder;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -40,7 +40,7 @@ import de.ovgu.featureide.fm.core.job.SliceFeatureModel;
  */
 public class PartialFeatureProjectBuilder {
 
-	// private ComposerSpecificExtension compExtension;
+	private ComposerSpecificBuilderExtension compExtension;
 	private final IFeatureProject project;
 	private Configuration config;
 	private IFeatureModel slicedModel;
@@ -73,7 +73,6 @@ public class PartialFeatureProjectBuilder {
 				feature.getStructure().setMandatory(true);
 			}
 		});
-
 		return;
 	}
 

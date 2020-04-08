@@ -40,12 +40,12 @@ import org.eclipse.ui.wizards.newresource.BasicNewProjectResourceWizard;
 
 import de.ovgu.featureide.core.CorePlugin;
 import de.ovgu.featureide.core.IFeatureProject;
+import de.ovgu.featureide.core.builder.PartialFeatureProjectBuilder;
 import de.ovgu.featureide.core.wizardextension.DefaultNewFeatureProjectWizardExtension;
 import de.ovgu.featureide.fm.core.io.manager.ConfigurationManager;
 import de.ovgu.featureide.fm.core.io.manager.FeatureModelManager;
 import de.ovgu.featureide.fm.ui.FMUIPlugin;
 import de.ovgu.featureide.ui.UIPlugin;
-import de.ovgu.featureide.ui.actions.PartialFeatureProjectBuilder;
 
 /**
  * TODO description
