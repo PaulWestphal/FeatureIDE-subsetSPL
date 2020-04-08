@@ -59,7 +59,10 @@ public class PartialFeatureProjectBuilder {
 		slicedModel = LongRunningWrapper.runMethod(new SliceFeatureModel(project.getFeatureModel(), featureNameList, true));
 		setSelectedFeaturesMandatory();
 
-		final Path fmPath = Paths.get(project.getProject().getLocation().toOSString().replace("\\", "/") + "/fmfile.xml");
+		// final Path fmPath = Paths.get(project.getProject().getLocation().toOSString().replace("\\", "/") + "/fmfile.xml");
+
+		// overwrite old feature model
+		final Path fmPath = Paths.get(project.getFeatureModel().getSourceFile().toString().replace("\\", "/"));
 		FeatureModelManager.save(slicedModel, fmPath, project.getComposer().getFeatureModelFormat());
 	}
 
