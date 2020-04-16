@@ -1174,4 +1174,13 @@ public class FeatureHouseComposer extends ComposerExtensionClass {
 		return true;
 	}
 
+	/*
+	 * (non-Javadoc)
+	 * @see de.ovgu.featureide.core.builder.IComposerExtensionBase#supportsPartialFeatureProject()
+	 */
+	@Override
+	public boolean supportsPartialFeatureProject() {
+		return true;
+	}
+
 }

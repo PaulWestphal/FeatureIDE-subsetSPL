@@ -64,6 +64,9 @@ public class PartialFeatureProjectBuilder {
 		// overwrite old feature model
 		final Path fmPath = Paths.get(project.getFeatureModel().getSourceFile().toString().replace("\\", "/"));
 		FeatureModelManager.save(slicedModel, fmPath, project.getComposer().getFeatureModelFormat());
+		if (project.getComposer().supportsPartialFeatureProject()) {
+			project.getComposer().buildPartialFeatureProject();
+		}
 	}
 
 	private void setSelectedFeaturesMandatory() {

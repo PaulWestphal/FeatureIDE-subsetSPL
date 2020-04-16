@@ -594,4 +594,13 @@ public class MungePreprocessor extends PPComposerExtensionClass {
 		return false;// TODO munge seems to have parallelization problems
 	}
 
+	/*
+	 * (non-Javadoc)
+	 * @see de.ovgu.featureide.core.builder.IComposerExtensionBase#supportsPartialFeatureProject()
+	 */
+	@Override
+	public boolean supportsPartialFeatureProject() {
+		return false;
+	}
+
 }

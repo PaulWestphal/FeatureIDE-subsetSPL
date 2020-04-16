@@ -128,4 +128,13 @@ public class FeatureModeling extends ComposerExtensionClass {
 	public boolean showContextFieldsAndMethods() {
 		return false;
 	}
+
+	/*
+	 * (non-Javadoc)
+	 * @see de.ovgu.featureide.core.builder.IComposerExtensionBase#supportsPartialFeatureProject()
+	 */
+	@Override
+	public boolean supportsPartialFeatureProject() {
+		return true;
+	}
 }

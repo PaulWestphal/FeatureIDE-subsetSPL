@@ -543,4 +543,13 @@ public class AspectJComposer extends ComposerExtensionClass {
 		return super.isComposable();
 	}
 
+	/*
+	 * (non-Javadoc)
+	 * @see de.ovgu.featureide.core.builder.IComposerExtensionBase#supportsPartialFeatureProject()
+	 */
+	@Override
+	public boolean supportsPartialFeatureProject() {
+		return false;
+	}
+
 }

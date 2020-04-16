@@ -505,4 +505,8 @@ public abstract class ComposerExtensionClass implements IComposerExtensionClass 
 	public IFeatureModelFormat getFeatureModelFormat() {
 		return FMFormatManager.getDefaultFormat();
 	}
+
+	public boolean buildPartialFeatureProject() {
+		return false;
+	}
 }

@@ -151,4 +151,13 @@ public class ImagesComposer extends ComposerExtensionClass {
 		return orderedFeatures;
 	}
 
+	/*
+	 * (non-Javadoc)
+	 * @see de.ovgu.featureide.core.builder.IComposerExtensionBase#supportsPartialFeatureProject()
+	 */
+	@Override
+	public boolean supportsPartialFeatureProject() {
+		return false;
+	}
+
 }

@@ -356,4 +356,13 @@ public class FrameworkComposer extends ComposerExtensionClass {
 	public boolean clean() {
 		return false;
 	}
+
+	/*
+	 * (non-Javadoc)
+	 * @see de.ovgu.featureide.core.builder.IComposerExtensionBase#supportsPartialFeatureProject()
+	 */
+	@Override
+	public boolean supportsPartialFeatureProject() {
+		return false;
+	}
 }

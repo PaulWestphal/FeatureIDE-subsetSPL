@@ -651,4 +651,13 @@ public class CPPComposer extends PPComposerExtensionClass {
 		return IComposerExtensionClass.Mechanism.PREPROCESSOR;
 	}
 
+	/*
+	 * (non-Javadoc)
+	 * @see de.ovgu.featureide.core.builder.IComposerExtensionBase#supportsPartialFeatureProject()
+	 */
+	@Override
+	public boolean supportsPartialFeatureProject() {
+		return false;
+	}
+
 }

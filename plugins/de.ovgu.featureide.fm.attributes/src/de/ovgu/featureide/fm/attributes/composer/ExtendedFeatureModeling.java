@@ -129,4 +129,9 @@ public class ExtendedFeatureModeling extends ComposerExtensionClass {
 	public IFeatureModelFormat getFeatureModelFormat() {
 		return new XmlExtendedFeatureModelFormat();
 	}
+
+	@Override
+	public boolean supportsPartialFeatureProject() {
+		return false;
+	}
 }

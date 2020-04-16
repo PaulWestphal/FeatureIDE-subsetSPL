@@ -51,7 +51,7 @@ public interface IComposerExtensionClass extends IComposerExtensionBase {
 
 	/** Defines the product-line implementation-mechanism of the composition tool **/
 	static enum Mechanism {
-		FEATURE_ORIENTED_PROGRAMMING, ASPECT_ORIENTED_PROGRAMMING, DELTA_ORIENTED_PROGRAMMING, PREPROCESSOR
+	FEATURE_ORIENTED_PROGRAMMING, ASPECT_ORIENTED_PROGRAMMING, DELTA_ORIENTED_PROGRAMMING, PREPROCESSOR
 	};
 
 	final static String PACKAGE_PATTERN = "#package#";
@@ -213,4 +213,9 @@ public interface IComposerExtensionClass extends IComposerExtensionBase {
 	 * @return The format that should be used to create the feature model
 	 */
 	IFeatureModelFormat getFeatureModelFormat();
+
+	/**
+	 * @return true if the composer succeeded at building partial feature project, false otherwise.
+	 */
+	boolean buildPartialFeatureProject();
 }
