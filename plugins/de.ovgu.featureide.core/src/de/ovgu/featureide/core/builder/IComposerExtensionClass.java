@@ -20,6 +20,7 @@
  */
 package de.ovgu.featureide.core.builder;
 
+import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
@@ -32,6 +33,7 @@ import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IFolder;
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IResourceDelta;
+import org.eclipse.core.runtime.CoreException;
 
 import de.ovgu.featureide.core.fstmodel.preprocessor.FSTDirective;
 import de.ovgu.featureide.fm.core.configuration.Configuration;
@@ -215,7 +217,10 @@ public interface IComposerExtensionClass extends IComposerExtensionBase {
 	IFeatureModelFormat getFeatureModelFormat();
 
 	/**
-	 * @return true if the composer succeeded at building partial feature project, false otherwise.
+	 * @param removedFeatureNameList
+	 * @throws CoreException
+	 * @throws IOException
 	 */
-	boolean buildPartialFeatureProject();
+	void buildPartialFeatureProject(IFolder sourceFolder, ArrayList<String> removedFeatures, ArrayList<String> mandatoryFeatures)
+			throws IOException, CoreException;
 }

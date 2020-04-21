@@ -699,14 +699,61 @@ public class AntennaPreprocessor extends PPComposerExtensionClass {
 	}
 
 	@Override
-	public boolean buildPartialFeatureProject() {
-		return true;
+	public void buildPartialFeatureProject(IFolder sourceFolder, ArrayList<String> removedFeatures, ArrayList<String> mandatoryFeatures)
+			throws IOException, CoreException {
+		for (final IResource res : sourceFolder.members()) {
+			if (res instanceof IFolder) {
+				// for folders do recursively
+				buildPartialFeatureProject((IFolder) res, removedFeatures, mandatoryFeatures);
+			} else if (res instanceof IFile) {
+				// delete all existing builder markers
+
+				featureProject.deleteBuilderMarkers(res, 0);
+
+				// get all lines from file
+				final Vector<String> lines = loadStringsFromFile((IFile) res);
+
+				// do checking and some stuff
+				processLinesOfFile(lines, (IFile) res);
+
+				boolean changed = false;
+
+				// run antenna preprocessor
+				changed = removeFeaturesFromFile(lines, removedFeatures);
+
+				// if preprocessor changed file: save & refresh
+				if (changed) {
+					FileOutputStream ostr = null;
+					try {
+						ostr = new FileOutputStream(res.getRawLocation().toOSString());
+						Preprocessor.saveStrings(lines, ostr, ((IFile) res).getCharset());
+					} finally {
+						if (ostr != null) {
+							ostr.close();
+						}
+					}
+					// use touch to support e.g. linux
+					res.touch(null);
+					res.refreshLocal(IResource.DEPTH_ZERO, null);
+				}
+			}
+		}
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see de.ovgu.featureide.core.builder.IComposerExtensionBase#supportsPartialFeatureProject()
-	 */
+	private boolean removeFeaturesFromFile(Vector<String> lines, ArrayList<String> features) {
+
+		for (int i = 0; i < lines.size(); i++) {
+			final String line = lines.get(i);
+			if (!isAnnotation(line)) {
+				continue;
+			} else {
+
+			}
+		}
+
+		return false;
+	}
+
 	@Override
 	public boolean supportsPartialFeatureProject() {
 		return true;

@@ -27,6 +27,7 @@ import static de.ovgu.featureide.fm.core.localization.StringTable.RESTRICTION;
 import static de.ovgu.featureide.fm.core.localization.StringTable.THE_REQUIRED_BUNDLE;
 
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
@@ -551,5 +552,9 @@ public class AspectJComposer extends ComposerExtensionClass {
 	public boolean supportsPartialFeatureProject() {
 		return false;
 	}
+
+	@Override
+	public void buildPartialFeatureProject(IFolder sourceFolder, ArrayList<String> removedFeatures, ArrayList<String> mandatoryFeatures)
+			throws IOException, CoreException {}
 
 }

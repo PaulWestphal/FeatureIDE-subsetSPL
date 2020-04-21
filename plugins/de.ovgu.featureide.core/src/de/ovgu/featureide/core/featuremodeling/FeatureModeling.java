@@ -20,7 +20,9 @@
  */
 package de.ovgu.featureide.core.featuremodeling;
 
+import java.io.IOException;
 import java.nio.file.Path;
+import java.util.ArrayList;
 
 import org.eclipse.core.resources.IContainer;
 import org.eclipse.core.resources.IFile;
@@ -129,12 +131,14 @@ public class FeatureModeling extends ComposerExtensionClass {
 		return false;
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see de.ovgu.featureide.core.builder.IComposerExtensionBase#supportsPartialFeatureProject()
-	 */
 	@Override
 	public boolean supportsPartialFeatureProject() {
 		return true;
+	}
+
+	@Override
+	public void buildPartialFeatureProject(IFolder sourceFolder, ArrayList<String> removedFeatures, ArrayList<String> mandatoryFeatures)
+			throws IOException, CoreException {
+
 	}
 }

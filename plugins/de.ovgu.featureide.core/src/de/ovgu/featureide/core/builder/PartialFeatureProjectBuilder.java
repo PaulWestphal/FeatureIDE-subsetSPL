@@ -20,9 +20,13 @@
  */
 package de.ovgu.featureide.core.builder;
 
+import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+
+import org.eclipse.core.resources.IFolder;
+import org.eclipse.core.runtime.CoreException;
 
 import de.ovgu.featureide.core.IFeatureProject;
 import de.ovgu.featureide.fm.core.base.IFeature;
@@ -44,20 +48,26 @@ public class PartialFeatureProjectBuilder {
 	private final IFeatureProject project;
 	private Configuration config;
 	private IFeatureModel slicedModel;
+	private final IFolder sourceFolder;
 
 	private final Path configPath;
 
-	public PartialFeatureProjectBuilder(IFeatureProject project, Path configPath) {
+	public PartialFeatureProjectBuilder(IFeatureProject project, Path configPath, IFolder sourceFolder) {
 		this.project = project;
 		this.configPath = configPath;
+		this.sourceFolder = sourceFolder;
 	}
 
-	public <T> void transformProject() {
+	public void transformProject() {
 		config = getConfiguration();
 
 		final ArrayList<String> featureNameList = getFeatureNames();
+		final ArrayList<String> removedFeatureNameList = new ArrayList<String>(config.getUnSelectedFeatureNames());
 		slicedModel = LongRunningWrapper.runMethod(new SliceFeatureModel(project.getFeatureModel(), featureNameList, true));
-		setSelectedFeaturesMandatory();
+
+		final ArrayList<String> mandatoryFeatureNameList = new ArrayList<String>();
+		featureNameList.addAll(config.getSelectedFeatureNames());
+		setFeaturesMandatory(mandatoryFeatureNameList);
 
 		// final Path fmPath = Paths.get(project.getProject().getLocation().toOSString().replace("\\", "/") + "/fmfile.xml");
 
@@ -65,15 +75,16 @@ public class PartialFeatureProjectBuilder {
 		final Path fmPath = Paths.get(project.getFeatureModel().getSourceFile().toString().replace("\\", "/"));
 		FeatureModelManager.save(slicedModel, fmPath, project.getComposer().getFeatureModelFormat());
 		if (project.getComposer().supportsPartialFeatureProject()) {
-			project.getComposer().buildPartialFeatureProject();
+			try {
+				project.getComposer().buildPartialFeatureProject(sourceFolder, removedFeatureNameList, mandatoryFeatureNameList);
+			} catch (IOException | CoreException e) {
+				e.printStackTrace();
+			}
 		}
 	}
 
-	private void setSelectedFeaturesMandatory() {
-		final ArrayList<String> featureNameList = new ArrayList<String>();
-		featureNameList.addAll(config.getSelectedFeatureNames());
-
-		featureNameList.forEach((selectedFeatureName) -> {
+	private void setFeaturesMandatory(ArrayList<String> features) {
+		features.forEach((selectedFeatureName) -> {
 			final IFeature feature = slicedModel.getFeature(selectedFeatureName);
 			if (feature != null) {
 				feature.getStructure().setMandatory(true);

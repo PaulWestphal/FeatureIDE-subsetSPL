@@ -7,6 +7,7 @@ import static de.ovgu.featureide.fm.core.localization.StringTable.PREPROCESSOR_A
 import static de.ovgu.featureide.fm.core.localization.StringTable.THE_REQUIRED_BUNDLE;
 
 import java.io.File;
+import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -651,13 +652,13 @@ public class CPPComposer extends PPComposerExtensionClass {
 		return IComposerExtensionClass.Mechanism.PREPROCESSOR;
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see de.ovgu.featureide.core.builder.IComposerExtensionBase#supportsPartialFeatureProject()
-	 */
 	@Override
 	public boolean supportsPartialFeatureProject() {
 		return false;
 	}
+
+	@Override
+	public void buildPartialFeatureProject(IFolder sourceFolder, ArrayList<String> removedFeatures, ArrayList<String> mandatoryFeatures)
+			throws IOException, CoreException {}
 
 }

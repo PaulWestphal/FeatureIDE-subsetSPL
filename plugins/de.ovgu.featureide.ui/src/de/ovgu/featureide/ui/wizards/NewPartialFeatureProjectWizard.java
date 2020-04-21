@@ -140,7 +140,7 @@ public class NewPartialFeatureProjectWizard extends BasicNewProjectResourceWizar
 			final IFeatureProject newFeatureProject = CorePlugin.getFeatureProject(newProject);
 
 			final java.nio.file.Path configPath = Paths.get(baseProject.getConfigPath() + "/" + page.getSelectedConfiguration());
-			builder = new PartialFeatureProjectBuilder(newFeatureProject, configPath);
+			builder = new PartialFeatureProjectBuilder(newFeatureProject, configPath, newFeatureProject.getSourceFolder());
 			builder.transformProject();
 		}
 

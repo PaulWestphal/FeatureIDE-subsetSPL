@@ -572,13 +572,13 @@ public class RuntimeParameters extends ComposerExtensionClass {
 		return false;
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see de.ovgu.featureide.core.builder.IComposerExtensionBase#supportsPartialFeatureProject()
-	 */
 	@Override
 	public boolean supportsPartialFeatureProject() {
 		return false;
 	}
+
+	@Override
+	public void buildPartialFeatureProject(IFolder sourceFolder, ArrayList<String> removedFeatures, ArrayList<String> mandatoryFeatures)
+			throws IOException, CoreException {}
 
 }
