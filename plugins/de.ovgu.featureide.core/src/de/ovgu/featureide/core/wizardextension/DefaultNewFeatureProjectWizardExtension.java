@@ -79,7 +79,7 @@ public class DefaultNewFeatureProjectWizardExtension {
 	 */
 	public void enhanceProject(IProject project, String compID, String sourcePath, String configPath, String buildPath, boolean shouldCreateSourceFolder,
 			boolean shouldCreateBuildFolder) throws CoreException {
-		CorePlugin.setupFeatureProject(project, compID, sourcePath, configPath, buildPath, true, true, shouldCreateSourceFolder, shouldCreateBuildFolder);
+		CorePlugin.setupFeatureProject(project, compID, sourcePath, configPath, buildPath, true, false, shouldCreateSourceFolder, shouldCreateBuildFolder);
 		extendedEnhanceProject(project, compID, sourcePath, configPath, buildPath);
 	}
 
