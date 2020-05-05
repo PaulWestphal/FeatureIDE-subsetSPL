@@ -734,25 +734,34 @@ public class AntennaPreprocessor extends PPComposerExtensionClass {
 	}
 
 	private boolean removeFeaturesFromFile(Vector<String> lines, ArrayList<String> features) {
+		boolean changed = false;
 
 		for (int i = 0; i < lines.size(); i++) {
 			String line = lines.get(i);
 			if (!isAnnotation(line)) {
 				continue;
 			} else {
-				// remove "//#if ", "//ifdef", ...
+				final String lineBefore = line;
 				line = replaceCommandPattern.matcher(line).replaceAll("");
+				final String lineToReplace = line.trim();
 
 				line = convertLineForNodeReader(line);
 
-				// get all features and generate Node expression for given line
+				// TODO: check if this should even be read by NodeReader
+
 				final Node ppExpression = nodereader.stringToNode(line, featureList);
 				features.forEach((n) -> ppExpression.replaceFeature(n, "false"));
-				System.out.println(ppExpression.toString());
+				line = ppExpression.toString();
+
+				final String nurtestwasistdas = lineBefore.replace(lineToReplace, line);
+
+				lines.set(i, lineBefore.replace(lineToReplace, line));
+
+				changed = true;
 			}
 		}
 
-		return false;
+		return changed;
 	}
 
 	@Override
