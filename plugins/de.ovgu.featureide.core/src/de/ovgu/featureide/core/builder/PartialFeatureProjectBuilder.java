@@ -66,10 +66,8 @@ public class PartialFeatureProjectBuilder {
 		slicedModel = LongRunningWrapper.runMethod(new SliceFeatureModel(project.getFeatureModel(), featureNameList, true));
 
 		final ArrayList<String> mandatoryFeatureNameList = new ArrayList<String>();
-		featureNameList.addAll(config.getSelectedFeatureNames());
+		mandatoryFeatureNameList.addAll(config.getSelectedFeatureNames());
 		setFeaturesMandatory(mandatoryFeatureNameList);
-
-		// final Path fmPath = Paths.get(project.getProject().getLocation().toOSString().replace("\\", "/") + "/fmfile.xml");
 
 		// overwrite old feature model
 		final Path fmPath = Paths.get(project.getFeatureModel().getSourceFile().toString().replace("\\", "/"));

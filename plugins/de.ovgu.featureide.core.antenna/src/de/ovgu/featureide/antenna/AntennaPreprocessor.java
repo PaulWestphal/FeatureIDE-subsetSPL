@@ -407,14 +407,7 @@ public class AntennaPreprocessor extends PPComposerExtensionClass {
 		// remove "//#if ", "//ifdef", ...
 		line = replaceCommandPattern.matcher(line).replaceAll("");
 
-		// prepare expression for NodeReader()
-		line = line.trim();
-		line = line.replace("&&", "&");
-		line = line.replace("||", "|");
-		line = line.replace("!", "-");
-		line = line.replace("&", " and ");
-		line = line.replace("|", " or ");
-		line = line.replace("-", " not ");
+		convertLineForNodeReader(line);
 
 		// get all features and generate Node expression for given line
 		Node ppExpression = nodereader.stringToNode(line, featureList);
@@ -750,17 +743,12 @@ public class AntennaPreprocessor extends PPComposerExtensionClass {
 				// remove "//#if ", "//ifdef", ...
 				line = replaceCommandPattern.matcher(line).replaceAll("");
 
-				// prepare expression for NodeReader()
-				line = line.trim();
-				line = line.replace("&&", "&");
-				line = line.replace("||", "|");
-				line = line.replace("!", "-");
-				line = line.replace("&", " and ");
-				line = line.replace("|", " or ");
-				line = line.replace("-", " not ");
+				line = convertLineForNodeReader(line);
 
 				// get all features and generate Node expression for given line
 				final Node ppExpression = nodereader.stringToNode(line, featureList);
+				features.forEach((n) -> ppExpression.replaceFeature(n, "false"));
+				System.out.println(ppExpression.toString());
 			}
 		}
 
@@ -770,5 +758,16 @@ public class AntennaPreprocessor extends PPComposerExtensionClass {
 	@Override
 	public boolean supportsPartialFeatureProject() {
 		return true;
+	}
+
+	private String convertLineForNodeReader(String line) {
+		line = line.trim();
+		line = line.replace("&&", "&");
+		line = line.replace("||", "|");
+		line = line.replace("!", "-");
+		line = line.replace("&", " and ");
+		line = line.replace("|", " or ");
+		line = line.replace("-", " not ");
+		return line;
 	}
 }
