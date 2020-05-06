@@ -41,7 +41,6 @@ import org.eclipse.ui.wizards.newresource.BasicNewProjectResourceWizard;
 import de.ovgu.featureide.core.CorePlugin;
 import de.ovgu.featureide.core.IFeatureProject;
 import de.ovgu.featureide.core.builder.PartialFeatureProjectBuilder;
-import de.ovgu.featureide.core.wizardextension.DefaultNewFeatureProjectWizardExtension;
 import de.ovgu.featureide.fm.core.io.manager.ConfigurationManager;
 import de.ovgu.featureide.fm.core.io.manager.FeatureModelManager;
 import de.ovgu.featureide.fm.ui.FMUIPlugin;
@@ -60,7 +59,7 @@ public class NewPartialFeatureProjectWizard extends BasicNewProjectResourceWizar
 	private final IFeatureProject baseProject;
 	private final IPath baseProjectPath;
 	private IPath newProjectPath;
-	private DefaultNewFeatureProjectWizardExtension wizardExtension = null;
+	private NewPartialFeatureProjectWizardExtension wizardExtension = null;
 	private final String compositionToolID;
 	private PartialFeatureProjectBuilder builder = null;
 
@@ -119,7 +118,7 @@ public class NewPartialFeatureProjectWizard extends BasicNewProjectResourceWizar
 	public boolean performFinish() {
 
 		if (wizardExtension == null) {
-			wizardExtension = new DefaultNewFeatureProjectWizardExtension();
+			wizardExtension = new NewPartialFeatureProjectWizardExtension();
 			wizardExtension.setWizard(this);
 		}
 
@@ -135,7 +134,7 @@ public class NewPartialFeatureProjectWizard extends BasicNewProjectResourceWizar
 			baseProject.getSourcePath();
 			final IProject newProject = getNewProject();
 			enhanceProject(newProject);
-			CorePlugin.getDefault().addProject(newProject);
+			// CorePlugin.getDefault().addProject(newProject);
 
 			final IFeatureProject newFeatureProject = CorePlugin.getFeatureProject(newProject);
 
