@@ -1,5 +1,5 @@
 /* FeatureIDE - A Framework for Feature-Oriented Software Development
- * Copyright (C) 2005-2019  FeatureIDE team, University of Magdeburg, Germany
+ * Copyright (C) 2005-2017  FeatureIDE team, University of Magdeburg, Germany
  *
  * This file is part of FeatureIDE.
  *
@@ -18,52 +18,20 @@
  *
  * See http://featureide.cs.ovgu.de/ for further information.
  */
-package de.ovgu.featureide.core.wizardextension;
+package de.ovgu.featureide.ui.wizards;
 
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.runtime.CoreException;
-import org.eclipse.jface.wizard.IWizardPage;
-import org.eclipse.jface.wizard.WizardPage;
-import org.eclipse.ui.wizards.newresource.BasicNewResourceWizard;
 
 import de.ovgu.featureide.core.CorePlugin;
+import de.ovgu.featureide.core.wizardextension.DefaultNewFeatureProjectWizardExtension;
 
 /**
- * An extension of the NewFeatureProjectWizard capable of adding new pages and enhancing the project after the feature project has been created.
+ * TODO description
  *
- * @author Stefan Krueger
- * @author Sebastian Krieter
+ * @author Paul Westphal
  */
-public class DefaultNewFeatureProjectWizardExtension {
-
-	/**
-	 *
-	 * @return true if all pages have been finished.
-	 */
-	public boolean isFinished() {
-		return true;
-	}
-
-	/**
-	 * The page to be opened next has to be determined dynamically. This method should provide the respective next page depending on the given page.
-	 *
-	 * @param page the current page for which the next page shall be determined.
-	 * @return the next page to dynamically append to {@link DefaultNewFeatureProjectWizardExtension} in respect to parameter.
-	 */
-	public IWizardPage getNextPage(IWizardPage page) {
-		return null;
-	}
-
-	public boolean performBeforeFinish(WizardPage page) {
-		return true;
-	}
-
-	/**
-	 * The pages of the wizard extension need to get a parent wizard for the wizard to function properly.
-	 *
-	 * @param wizard the wizard to set for the extension pages.
-	 */
-	public void setWizard(BasicNewResourceWizard wizard) {}
+public class NewPartialFeatureProjectWizardExtension extends DefaultNewFeatureProjectWizardExtension {
 
 	/**
 	 * Executed after FeatureIDE project is created and before editor is opened.
@@ -77,16 +45,10 @@ public class DefaultNewFeatureProjectWizardExtension {
 	 * @param shouldCreateBuildFolder create build folder if wanted
 	 * @throws CoreException exception
 	 */
+	@Override
 	public void enhanceProject(IProject project, String compID, String sourcePath, String configPath, String buildPath, boolean shouldCreateSourceFolder,
 			boolean shouldCreateBuildFolder) throws CoreException {
-		CorePlugin.setupFeatureProject(project, compID, sourcePath, configPath, buildPath, true, true, shouldCreateSourceFolder, shouldCreateBuildFolder);
+		CorePlugin.setupFeatureProject(project, compID, sourcePath, configPath, buildPath, true, false, shouldCreateSourceFolder, shouldCreateBuildFolder);
 		extendedEnhanceProject(project, compID, sourcePath, configPath, buildPath);
 	}
-
-	protected void extendedEnhanceProject(IProject project, String compID, String sourcePath, String configPath, String buildPath) {}
-
-	public boolean performOwnFinish() {
-		return false;
-	}
-
 }

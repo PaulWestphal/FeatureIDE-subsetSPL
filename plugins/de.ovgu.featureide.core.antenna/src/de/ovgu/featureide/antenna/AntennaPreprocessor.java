@@ -58,6 +58,7 @@ import org.prop4j.NodeReader.ErrorHandling;
 import org.prop4j.Not;
 
 import antenna.preprocessor.v3.PPException;
+import antenna.preprocessor.v3.PPLine;
 import antenna.preprocessor.v3.Preprocessor;
 import de.ovgu.featureide.antenna.documentation.DocumentationCommentParser;
 import de.ovgu.featureide.antenna.model.AntennaModelBuilder;
@@ -734,30 +735,27 @@ public class AntennaPreprocessor extends PPComposerExtensionClass {
 	}
 
 	private boolean removeFeaturesFromFile(Vector<String> lines, ArrayList<String> features) {
-		boolean changed = false;
+		final boolean changed = false;
 
 		for (int i = 0; i < lines.size(); i++) {
-			String line = lines.get(i);
+			final String line = lines.get(i);
 			if (!isAnnotation(line)) {
 				continue;
 			} else {
-				final String lineBefore = line;
-				line = replaceCommandPattern.matcher(line).replaceAll("");
-				final String lineToReplace = line.trim();
 
-				line = convertLineForNodeReader(line);
+				final PPLine ppline = new PPLine(line);
 
-				// TODO: check if this should even be read by NodeReader
+				if (ppline.getType() == PPLine.TYPE_COMMAND) {
+					System.out.println(line);
+				}
 
-				final Node ppExpression = nodereader.stringToNode(line, featureList);
-				features.forEach((n) -> ppExpression.replaceFeature(n, "false"));
-				line = ppExpression.toString();
-
-				final String nurtestwasistdas = lineBefore.replace(lineToReplace, line);
-
-				lines.set(i, lineBefore.replace(lineToReplace, line));
-
-				changed = true;
+				/*
+				 * final String lineBefore = line; line = replaceCommandPattern.matcher(line).replaceAll(""); final String lineToReplace = line.trim(); line =
+				 * convertLineForNodeReader(line); // TODO: check if this should even be read by NodeReader final Node ppExpression =
+				 * nodereader.stringToNode(line, featureList); features.forEach((n) -> ppExpression.replaceFeature(n, "false")); line = ppExpression.toString();
+				 * final String nurtestwasistdas = lineBefore.replace(lineToReplace, line); lines.set(i, lineBefore.replace(lineToReplace, line)); changed =
+				 * true;
+				 */
 			}
 		}
 
