@@ -134,7 +134,7 @@ public class NewPartialFeatureProjectWizard extends BasicNewProjectResourceWizar
 			baseProject.getSourcePath();
 			final IProject newProject = getNewProject();
 			enhanceProject(newProject);
-			// CorePlugin.getDefault().addProject(newProject);
+			CorePlugin.getDefault().addProject(newProject);
 
 			final IFeatureProject newFeatureProject = CorePlugin.getFeatureProject(newProject);
 

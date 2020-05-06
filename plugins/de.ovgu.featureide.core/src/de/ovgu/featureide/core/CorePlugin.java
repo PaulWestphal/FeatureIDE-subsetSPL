@@ -384,7 +384,8 @@ public class CorePlugin extends AbstractCorePlugin {
 	public static void setupProject(final IProject project, String compositionToolID, final String sourcePath, final String configPath, final String buildPath,
 			boolean shouldCreateSourceFolder, boolean shouldCreateBuildFolder) {
 		final IComposerExtensionClass composer = getComposer(compositionToolID);
-		setupFeatureProject(project, compositionToolID, sourcePath, configPath, buildPath, false, false, shouldCreateSourceFolder, shouldCreateBuildFolder);
+		setupFeatureProject(project, compositionToolID, sourcePath, configPath, buildPath, false, false, shouldCreateSourceFolder, shouldCreateBuildFolder,
+				true);
 
 		if (composer != null) {
 			final ISafeRunnable runnable = new ISafeRunnable() {
@@ -450,14 +451,19 @@ public class CorePlugin extends AbstractCorePlugin {
 	 * @param addNature true if nature should be added
 	 */
 	public static void setupFeatureProject(final IProject project, String compositionToolID, final String sourcePath, final String configPath,
-			final String buildPath, boolean addCompiler, boolean addNature, boolean shouldCreateSourceFolder, boolean shouldCreateBuildFolder) {
+			final String buildPath, boolean addCompiler, boolean addNature, boolean shouldCreateSourceFolder, boolean shouldCreateBuildFolder,
+			boolean shouldCreateConfigFolder) {
 		final IComposerExtensionClass composer = getComposer(compositionToolID);
-		createProjectStructure(project, sourcePath, configPath, buildPath, composer, shouldCreateSourceFolder, shouldCreateBuildFolder);
+		createProjectStructure(project, sourcePath, configPath, buildPath, composer, shouldCreateSourceFolder, shouldCreateBuildFolder,
+				shouldCreateConfigFolder);
 
 		setProjectProperties(project, compositionToolID, sourcePath, configPath, buildPath);
 
 		final FeatureModelManager featureModel = createFeatureModelFile(project, composer);
-		createConfigFile(project, configPath, featureModel, "default.");
+
+		if (shouldCreateConfigFolder) {
+			createConfigFile(project, configPath, featureModel, "default.");
+		}
 
 		if ((composer != null) && addCompiler) {
 			final ISafeRunnable runnable = new ISafeRunnable() {
@@ -534,7 +540,7 @@ public class CorePlugin extends AbstractCorePlugin {
 	 * Creates the source-, features- and build-folder at the given paths.<br> Also creates the bin folder if necessary.<br> Creates the default feature model.
 	 */
 	private static void createProjectStructure(IProject project, String sourcePath, String configPath, String buildPath, IComposerExtensionClass composer,
-			boolean shouldCreateSourceFolder, boolean shouldCreateBuildFolder) {
+			boolean shouldCreateSourceFolder, boolean shouldCreateBuildFolder, boolean shouldCreateConfigFolder) {
 		try {
 			/** just create the bin folder if project has only the FeatureIDE Nature **/
 			if ((project.getDescription().getNatureIds().length == 1) && project.hasNature(FeatureProjectNature.NATURE_ID)) {
@@ -553,7 +559,10 @@ public class CorePlugin extends AbstractCorePlugin {
 				FMCorePlugin.createFolder(project, buildPath);
 			}
 		}
-		FMCorePlugin.createFolder(project, configPath);
+
+		if (shouldCreateConfigFolder) {
+			FMCorePlugin.createFolder(project, configPath);
+		}
 	}
 
 	private static FeatureModelManager createFeatureModelFile(IProject project, IComposerExtensionClass composerClass) {
