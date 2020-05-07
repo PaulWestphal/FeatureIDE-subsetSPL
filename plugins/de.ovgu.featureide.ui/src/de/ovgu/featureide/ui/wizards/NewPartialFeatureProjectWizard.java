@@ -20,12 +20,7 @@
  */
 package de.ovgu.featureide.ui.wizards;
 
-import java.io.IOException;
-import java.nio.file.FileVisitResult;
-import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.nio.file.SimpleFileVisitor;
-import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -41,8 +36,7 @@ import org.eclipse.ui.wizards.newresource.BasicNewProjectResourceWizard;
 import de.ovgu.featureide.core.CorePlugin;
 import de.ovgu.featureide.core.IFeatureProject;
 import de.ovgu.featureide.core.builder.PartialFeatureProjectBuilder;
-import de.ovgu.featureide.fm.core.io.manager.ConfigurationManager;
-import de.ovgu.featureide.fm.core.io.manager.FeatureModelManager;
+import de.ovgu.featureide.core.wizardextension.DefaultNewFeatureProjectWizardExtension;
 import de.ovgu.featureide.fm.ui.FMUIPlugin;
 import de.ovgu.featureide.ui.UIPlugin;
 
@@ -59,7 +53,7 @@ public class NewPartialFeatureProjectWizard extends BasicNewProjectResourceWizar
 	private final IFeatureProject baseProject;
 	private final IPath baseProjectPath;
 	private IPath newProjectPath;
-	private NewPartialFeatureProjectWizardExtension wizardExtension = null;
+	private DefaultNewFeatureProjectWizardExtension wizardExtension = null;
 	private final String compositionToolID;
 	private PartialFeatureProjectBuilder builder = null;
 
@@ -118,7 +112,7 @@ public class NewPartialFeatureProjectWizard extends BasicNewProjectResourceWizar
 	public boolean performFinish() {
 
 		if (wizardExtension == null) {
-			wizardExtension = new NewPartialFeatureProjectWizardExtension();
+			wizardExtension = new DefaultNewFeatureProjectWizardExtension();
 			wizardExtension.setWizard(this);
 		}
 
@@ -148,9 +142,9 @@ public class NewPartialFeatureProjectWizard extends BasicNewProjectResourceWizar
 
 	private void enhanceProject(IProject newProject) {
 		// TODO: stringgebastel stabiler machen
-		final String newSourcePath = removeBaseProjectPathPrefix(baseProject.getSourcePath()).replace("\\", "/").substring(1);
-		final String newConfigPath = removeBaseProjectPathPrefix(baseProject.getConfigPath()).replace("\\", "/").substring(1);
-		final String newBuildPath = removeBaseProjectPathPrefix(baseProject.getBuildPath()).replace("\\", "/").substring(1);
+		final String newSourcePath;
+		final String newConfigPath;
+		final String newBuildPath;
 
 		try {
 			wizardExtension.enhanceProject(newProject, compositionToolID, newSourcePath, newConfigPath, newBuildPath, false, false);
@@ -159,47 +153,7 @@ public class NewPartialFeatureProjectWizard extends BasicNewProjectResourceWizar
 		}
 	}
 
-	private String removeBaseProjectPathPrefix(String s) {
-		if ((s != null) && (baseProjectPath != null) && s.startsWith(baseProjectPath.toOSString())) {
-			return s.substring(baseProjectPath.toOSString().length());
-		}
-		return s;
-	}
-
 	private void copyBaseProject() {
-		final java.nio.file.Path targetPath = java.nio.file.Paths.get(newProjectPath.toOSString());
-		final java.nio.file.Path sourcePath = java.nio.file.Paths.get(baseProjectPath.toOSString());
 
-		try {
-			Files.walkFileTree(sourcePath, new SimpleFileVisitor<java.nio.file.Path>() {
-
-				@Override
-				public FileVisitResult preVisitDirectory(final java.nio.file.Path dir, final BasicFileAttributes attrs) throws IOException {
-					Files.createDirectories(targetPath.resolve(sourcePath.relativize(dir)));
-					return FileVisitResult.CONTINUE;
-				}
-
-				@Override
-				public FileVisitResult visitFile(final java.nio.file.Path file, final BasicFileAttributes attrs) throws IOException {
-					// exception for classpath and project files
-					if (!(file.endsWith(".classpath") || file.endsWith(".project"))) {
-						Files.copy(file, targetPath.resolve(sourcePath.relativize(file)));
-					}
-					return FileVisitResult.CONTINUE;
-				}
-			});
-		} catch (final IOException e) {
-			UIPlugin.getDefault().logError(e);
-		}
-
-		final java.nio.file.Path fmPath =
-			java.nio.file.Paths.get(newProjectPath.toOSString() + removeBaseProjectPathPrefix(baseProject.getFeatureModel().getSourceFile().toString()));
-
-		baseProject.getComposer().getFeatureModelFormat();
-		FeatureModelManager.registerExistingFeatureModel(fmPath, baseProject.getComposer().getFeatureModelFormat());
-
-		final java.nio.file.Path configPath = java.nio.file.Paths
-				.get(newProjectPath.toOSString() + removeBaseProjectPathPrefix(baseProject.getConfigPath()) + "/" + page.getSelectedConfiguration());
-		ConfigurationManager.getInstance(configPath);
 	}
 }
