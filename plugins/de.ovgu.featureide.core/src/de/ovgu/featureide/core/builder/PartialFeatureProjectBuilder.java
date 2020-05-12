@@ -44,7 +44,6 @@ import de.ovgu.featureide.fm.core.job.SliceFeatureModel;
  */
 public class PartialFeatureProjectBuilder {
 
-	private ComposerSpecificBuilderExtension compExtension;
 	private final IFeatureProject project;
 	private Configuration config;
 	private IFeatureModel slicedModel;
@@ -52,10 +51,10 @@ public class PartialFeatureProjectBuilder {
 
 	private final Path configPath;
 
-	public PartialFeatureProjectBuilder(IFeatureProject project, Path configPath, IFolder sourceFolder) {
+	public PartialFeatureProjectBuilder(IFeatureProject project, Path configPath) {
 		this.project = project;
 		this.configPath = configPath;
-		this.sourceFolder = sourceFolder;
+		sourceFolder = project.getSourceFolder();
 	}
 
 	public void transformProject() {

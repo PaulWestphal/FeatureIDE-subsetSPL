@@ -58,7 +58,6 @@ import org.prop4j.NodeReader.ErrorHandling;
 import org.prop4j.Not;
 
 import antenna.preprocessor.v3.PPException;
-import antenna.preprocessor.v3.PPLine;
 import antenna.preprocessor.v3.Preprocessor;
 import de.ovgu.featureide.antenna.documentation.DocumentationCommentParser;
 import de.ovgu.featureide.antenna.model.AntennaModelBuilder;
@@ -736,30 +735,57 @@ public class AntennaPreprocessor extends PPComposerExtensionClass {
 
 	private boolean removeFeaturesFromFile(Vector<String> lines, ArrayList<String> features) {
 		final boolean changed = false;
+		final CodeBlock codeBlock = new CodeBlock();
 
-		for (int i = 0; i < lines.size(); i++) {
-			final String line = lines.get(i);
-			if (!isAnnotation(line)) {
-				continue;
-			} else {
-
-				final PPLine ppline = new PPLine(line);
-
-				if (ppline.getType() == PPLine.TYPE_COMMAND) {
-					System.out.println(line);
-				}
-
-				/*
-				 * final String lineBefore = line; line = replaceCommandPattern.matcher(line).replaceAll(""); final String lineToReplace = line.trim(); line =
-				 * convertLineForNodeReader(line); // TODO: check if this should even be read by NodeReader final Node ppExpression =
-				 * nodereader.stringToNode(line, featureList); features.forEach((n) -> ppExpression.replaceFeature(n, "false")); line = ppExpression.toString();
-				 * final String nurtestwasistdas = lineBefore.replace(lineToReplace, line); lines.set(i, lineBefore.replace(lineToReplace, line)); changed =
-				 * true;
-				 */
-			}
-		}
+		lookForCodeBlocks(codeBlock, 0, lines.size(), lines);
 
 		return changed;
+	}
+
+	/**
+	 * @param codeBlocks
+	 * @param i
+	 * @param size
+	 */
+	private void lookForCodeBlocks(CodeBlock parentBlock, int firstLine, int lastLine, Vector<String> lines) {
+		int currentLine = firstLine;
+		CodeBlock block = null;
+		int ifcount = 0;
+		for (; currentLine < lastLine; currentLine++) {
+			final String line = lines.get(currentLine);
+			// if line is preprocessor directive
+			if (containsPreprocessorDirective(line, "ifdef|ifndef|condition|elifdef|elifndef|if|else|elif")) {
+
+				if (containsPreprocessorDirective(line, "ifdef|ifndef|condition|if")) {
+					if (block == null) {
+						// TODO: create node correctly
+						block = new CodeBlock(currentLine, null);
+					} else {
+						ifcount++;
+					}
+				} else if (containsPreprocessorDirective(line, "elifdef|elifndef|else|elif")) {
+					// TODO: create Not node correctly
+					// final Node lastElement = new Not(expressionStack.pop().clone());
+					if (block == null) {
+						block = new CodeBlock(currentLine, null);
+					} else if ((ifcount == 0) && (block != null)) {
+						block.setEndLine(currentLine - 1);
+						parentBlock.addChild(block);
+						// TODO: create Not node correctly
+						block = new CodeBlock(currentLine, null);
+					}
+				}
+			} else if (containsPreprocessorDirective(line, "endif")) {
+				if ((ifcount == 0) && (block != null)) {
+					block.setEndLine(currentLine);
+					lookForCodeBlocks(parentBlock, block.getStartLine() + 1, currentLine - 1, lines);
+					parentBlock.addChild(block);
+					block = null;
+				} else {
+					ifcount--;
+				}
+			}
+		}
 	}
 
 	@Override

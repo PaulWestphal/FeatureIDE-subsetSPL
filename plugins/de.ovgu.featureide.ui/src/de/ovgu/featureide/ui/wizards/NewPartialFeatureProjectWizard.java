@@ -20,49 +20,50 @@
  */
 package de.ovgu.featureide.ui.wizards;
 
+import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.eclipse.core.commands.ExecutionException;
 import org.eclipse.core.resources.IProject;
-import org.eclipse.core.resources.IWorkspace;
-import org.eclipse.core.runtime.CoreException;
-import org.eclipse.core.runtime.IPath;
-import org.eclipse.core.runtime.Path;
+import org.eclipse.core.resources.ResourcesPlugin;
+import org.eclipse.core.runtime.IProgressMonitor;
+import org.eclipse.jface.dialogs.Dialog;
+import org.eclipse.jface.operation.IRunnableWithProgress;
 import org.eclipse.swt.graphics.Image;
+import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Shell;
-import org.eclipse.ui.wizards.newresource.BasicNewProjectResourceWizard;
+import org.eclipse.ui.dialogs.WizardNewProjectCreationPage;
+import org.eclipse.ui.ide.undo.CopyProjectOperation;
+import org.eclipse.ui.wizards.newresource.BasicNewResourceWizard;
 
 import de.ovgu.featureide.core.CorePlugin;
 import de.ovgu.featureide.core.IFeatureProject;
 import de.ovgu.featureide.core.builder.PartialFeatureProjectBuilder;
-import de.ovgu.featureide.core.wizardextension.DefaultNewFeatureProjectWizardExtension;
 import de.ovgu.featureide.fm.ui.FMUIPlugin;
 import de.ovgu.featureide.ui.UIPlugin;
 
 /**
- * TODO description
+ * This wizard allows the creation of a Partial Feature Project, using a FeatureIDE project (with a composer that supports the creation of a partial feature
+ * project) partial configuration.
  *
  * @author Paul Westphal
  */
-public class NewPartialFeatureProjectWizard extends BasicNewProjectResourceWizard {
+public class NewPartialFeatureProjectWizard extends BasicNewResourceWizard {
 
 	private final static Image colorImage = FMUIPlugin.getDefault().getImageDescriptor("icons/FeatureIconSmall.ico").createImage();
 	public static final String ID = UIPlugin.PLUGIN_ID + ".NewPartialProjectWizard";
 
 	private final IFeatureProject baseProject;
-	private final IPath baseProjectPath;
-	private IPath newProjectPath;
-	private DefaultNewFeatureProjectWizardExtension wizardExtension = null;
-	private final String compositionToolID;
-	private PartialFeatureProjectBuilder builder = null;
 
-	private ConfigurationSelectionPage page;
+	private ConfigurationSelectionPage page1;
+	private WizardNewProjectCreationPage page2;
 
 	public NewPartialFeatureProjectWizard(IFeatureProject featureproject) {
+		super();
+		setNeedsProgressMonitor(true);
 		baseProject = featureproject;
-		baseProjectPath = getBaseProjectPath();
-		compositionToolID = baseProject.getComposerID();
 	}
 
 	@Override
@@ -78,82 +79,69 @@ public class NewPartialFeatureProjectWizard extends BasicNewProjectResourceWizar
 
 		final String currentConfig = baseProject.getCurrentConfiguration().toString().replace("\\", "/").replace(configPath, "");
 
-		page = new ConfigurationSelectionPage(configNames, currentConfig);
+		page1 = new ConfigurationSelectionPage(configNames, currentConfig);
 		final Shell shell = getShell();
 		if (shell != null) {
 			shell.setImage(colorImage);
 		}
-		addPage(page);
+		addPage(page1);
+
+		page2 = new WizardNewProjectCreationPage("basicNewProjectPage") {
+
+			@Override
+			public void createControl(Composite parent) {
+				super.createControl(parent);
+				createWorkingSetGroup((Composite) getControl(), getSelection(), new String[] { "org.eclipse.ui.resourceWorkingSetPage" });
+				Dialog.applyDialogFont(getControl());
+			}
+		};
+		page2.setTitle("New Partial Feature Project platzhalter");
+		page2.setDescription("Bla bla platzhalter beschreibung");
+		page2.setInitialProjectName(baseProject.getProject().getName() + "_partial");
+		addPage(page2);
+
 		super.addPages();
 	}
 
 	@Override
-	public boolean canFinish() {
-		if (wizardExtension != null) {
-			return wizardExtension.isFinished();
-		} else {
-			return super.canFinish();
-		}
-	}
-
-	private IPath getBaseProjectPath() {
-		final IWorkspace workspace = baseProject.getProject().getWorkspace();
-		final IPath workspaceDirectory = workspace.getRoot().getLocation();
-		return new Path(workspaceDirectory.toString() + baseProject.getProject().getFullPath().toOSString());
-	}
-
-	private IPath getNewProjectPath() {
-		final IWorkspace workspace = getNewProject().getWorkspace();
-		final IPath workspaceDirectory = workspace.getRoot().getLocation();
-		return new Path(workspaceDirectory.toString() + getNewProject().getFullPath().toOSString());
-	}
-
-	@Override
 	public boolean performFinish() {
-
-		if (wizardExtension == null) {
-			wizardExtension = new DefaultNewFeatureProjectWizardExtension();
-			wizardExtension.setWizard(this);
-		}
-
-		if (super.performFinish() == false) {
-			return false;
-		}
-
-		newProjectPath = getNewProjectPath();
-
 		copyBaseProject();
 
-		if (wizardExtension.isFinished()) {
-			baseProject.getSourcePath();
-			final IProject newProject = getNewProject();
-			enhanceProject(newProject);
-			CorePlugin.getDefault().addProject(newProject);
+		final IProject newProject = ResourcesPlugin.getWorkspace().getRoot().getProject(page2.getProjectName());
 
-			final IFeatureProject newFeatureProject = CorePlugin.getFeatureProject(newProject);
+		IFeatureProject newFeatureProject = CorePlugin.getFeatureProject(newProject);
+		while ((newFeatureProject = CorePlugin.getFeatureProject(newProject)) == null) {}
 
-			final java.nio.file.Path configPath = Paths.get(baseProject.getConfigPath() + "/" + page.getSelectedConfiguration());
-			builder = new PartialFeatureProjectBuilder(newFeatureProject, configPath, newFeatureProject.getSourceFolder());
-			builder.transformProject();
-		}
+		final java.nio.file.Path configPath = Paths.get(baseProject.getConfigPath() + "/" + page1.getSelectedConfiguration());
+		final PartialFeatureProjectBuilder builder = new PartialFeatureProjectBuilder(newFeatureProject, configPath);
+		builder.transformProject();
 
 		return true;
-	}
 
-	private void enhanceProject(IProject newProject) {
-		// TODO: stringgebastel stabiler machen
-		final String newSourcePath;
-		final String newConfigPath;
-		final String newBuildPath;
-
-		try {
-			wizardExtension.enhanceProject(newProject, compositionToolID, newSourcePath, newConfigPath, newBuildPath, false, false);
-		} catch (final CoreException e) {
-			UIPlugin.getDefault().logError(e);
-		}
 	}
 
 	private void copyBaseProject() {
+		final IRunnableWithProgress runnable = new IRunnableWithProgress() {
 
+			String projectName = page2.getProjectName();
+
+			@Override
+			public void run(IProgressMonitor monitor) {
+				final CopyProjectOperation c = new CopyProjectOperation(baseProject.getProject(), projectName, null, "Copying Project");
+				try {
+					c.execute(monitor, getWorkbench());
+				} catch (final ExecutionException e) {
+					e.printStackTrace();
+				}
+			}
+		};
+
+		try {
+			getContainer().run(true, true, runnable);
+		} catch (final InvocationTargetException e) {
+			e.printStackTrace();
+		} catch (final InterruptedException e) {
+			e.printStackTrace();
+		}
 	}
 }

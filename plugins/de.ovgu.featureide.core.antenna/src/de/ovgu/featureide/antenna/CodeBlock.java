@@ -18,13 +18,45 @@
  *
  * See http://featureide.cs.ovgu.de/ for further information.
  */
-package de.ovgu.featureide.core.builder;
+package de.ovgu.featureide.antenna;
+
+import java.util.ArrayList;
+
+import org.prop4j.Node;
 
 /**
  * TODO description
  *
- * @author Paul Westphal
+ * @author paula
  */
-public abstract class ComposerSpecificBuilderExtension {
+public class CodeBlock {
 
+	private final int startLine;
+	private int endLine;
+	private Node node;
+	private final ArrayList<CodeBlock> children = new ArrayList<CodeBlock>();
+
+	public CodeBlock() {
+		startLine = 0;
+	}
+
+	public CodeBlock(int startLine, Node node) {
+		this.startLine = startLine;
+	}
+
+	public int getStartLine() {
+		return startLine;
+	}
+
+	public void setEndLine(int endLine) {
+		this.endLine = endLine;
+	}
+
+	public int getEndLine() {
+		return endLine;
+	}
+
+	public void addChild(CodeBlock child) {
+		children.add(child);
+	}
 }

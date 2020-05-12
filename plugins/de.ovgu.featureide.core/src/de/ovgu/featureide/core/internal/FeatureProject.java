@@ -333,11 +333,11 @@ public class FeatureProject extends BuilderMarkerHandler implements IFeatureProj
 		super(aProject);
 		project = aProject;
 
-		try {
-			project.refreshLocal(IResource.DEPTH_ONE, null);
-		} catch (final CoreException e) {
-			LOGGER.logError(e);
-		}
+//		try {
+//			project.refreshLocal(IResource.DEPTH_ONE, null);
+//		} catch (final CoreException e) {
+//			LOGGER.logError(e);
+//		}
 
 		if (project.getFile("mpl.velvet").exists()) {
 			modelFile = new ModelMarkerHandler<>(project.getFile("mpl.velvet"));
@@ -358,12 +358,12 @@ public class FeatureProject extends BuilderMarkerHandler implements IFeatureProj
 		}
 
 		// initialize project structure
-		try {
-			// workaround needed for project imports
-			project.refreshLocal(IResource.DEPTH_INFINITE, null);
-		} catch (final CoreException e) {
-			LOGGER.logError(e);
-		}
+//		try {
+//			// workaround needed for project imports
+//			project.refreshLocal(IResource.DEPTH_INFINITE, null);
+//		} catch (final CoreException e) {
+//			LOGGER.logError(e);
+//		}
 
 		final String projectBuildPath = getProjectBuildPath();
 
