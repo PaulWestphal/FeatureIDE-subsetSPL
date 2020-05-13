@@ -35,9 +35,15 @@ public class CodeBlock {
 	private int endLine;
 	private Node node;
 	private final ArrayList<CodeBlock> children = new ArrayList<CodeBlock>();
+	private String debugLine;
 
 	public CodeBlock() {
 		startLine = 0;
+	}
+
+	public CodeBlock(int startLine, Node node, String line) {
+		this.startLine = startLine;
+		debugLine = line;
 	}
 
 	public CodeBlock(int startLine, Node node) {

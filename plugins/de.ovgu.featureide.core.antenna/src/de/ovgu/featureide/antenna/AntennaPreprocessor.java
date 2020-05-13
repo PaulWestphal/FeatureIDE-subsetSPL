@@ -737,7 +737,7 @@ public class AntennaPreprocessor extends PPComposerExtensionClass {
 		final boolean changed = false;
 		final CodeBlock codeBlock = new CodeBlock();
 
-		lookForCodeBlocks(codeBlock, 0, lines.size(), lines);
+		lookForCodeBlocks(codeBlock, 0, lines.size() - 1, lines);
 
 		return changed;
 	}
@@ -751,7 +751,7 @@ public class AntennaPreprocessor extends PPComposerExtensionClass {
 		int currentLine = firstLine;
 		CodeBlock block = null;
 		int ifcount = 0;
-		for (; currentLine < lastLine; currentLine++) {
+		for (; currentLine <= lastLine; currentLine++) {
 			final String line = lines.get(currentLine);
 			// if line is preprocessor directive
 			if (containsPreprocessorDirective(line, "ifdef|ifndef|condition|elifdef|elifndef|if|else|elif")) {
@@ -759,7 +759,7 @@ public class AntennaPreprocessor extends PPComposerExtensionClass {
 				if (containsPreprocessorDirective(line, "ifdef|ifndef|condition|if")) {
 					if (block == null) {
 						// TODO: create node correctly
-						block = new CodeBlock(currentLine, null);
+						block = new CodeBlock(currentLine, null, line);
 					} else {
 						ifcount++;
 					}
@@ -767,7 +767,7 @@ public class AntennaPreprocessor extends PPComposerExtensionClass {
 					// TODO: create Not node correctly
 					// final Node lastElement = new Not(expressionStack.pop().clone());
 					if (block == null) {
-						block = new CodeBlock(currentLine, null);
+						block = new CodeBlock(currentLine, null, line);
 					} else if ((ifcount == 0) && (block != null)) {
 						block.setEndLine(currentLine - 1);
 						parentBlock.addChild(block);
@@ -778,7 +778,7 @@ public class AntennaPreprocessor extends PPComposerExtensionClass {
 			} else if (containsPreprocessorDirective(line, "endif")) {
 				if ((ifcount == 0) && (block != null)) {
 					block.setEndLine(currentLine);
-					lookForCodeBlocks(parentBlock, block.getStartLine() + 1, currentLine - 1, lines);
+					lookForCodeBlocks(block, block.getStartLine() + 1, currentLine - 1, lines);
 					parentBlock.addChild(block);
 					block = null;
 				} else {
