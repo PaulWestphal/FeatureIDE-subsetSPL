@@ -43,6 +43,7 @@ public class CodeBlock {
 
 	public CodeBlock(int startLine, Node node, String line) {
 		this.startLine = startLine;
+		this.node = node;
 		debugLine = line;
 	}
 

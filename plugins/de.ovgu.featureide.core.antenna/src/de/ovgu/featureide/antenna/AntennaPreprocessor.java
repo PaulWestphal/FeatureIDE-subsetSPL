@@ -52,6 +52,7 @@ import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.jobs.Job;
+import org.prop4j.And;
 import org.prop4j.Literal;
 import org.prop4j.Node;
 import org.prop4j.NodeReader.ErrorHandling;
@@ -404,9 +405,6 @@ public class AntennaPreprocessor extends PPComposerExtensionClass {
 		final boolean conditionIsSet = containsPreprocessorDirective(line, "condition");
 		final boolean negative = containsPreprocessorDirective(line, "ifndef|elifndef");
 
-		// remove "//#if ", "//ifdef", ...
-		line = replaceCommandPattern.matcher(line).replaceAll("");
-
 		convertLineForNodeReader(line);
 
 		// get all features and generate Node expression for given line
@@ -748,31 +746,44 @@ public class AntennaPreprocessor extends PPComposerExtensionClass {
 	 * @param size
 	 */
 	private void lookForCodeBlocks(CodeBlock parentBlock, int firstLine, int lastLine, Vector<String> lines) {
-		int currentLine = firstLine;
 		CodeBlock block = null;
+		Node lastNode = null;
 		int ifcount = 0;
-		for (; currentLine <= lastLine; currentLine++) {
+		for (int currentLine = firstLine; currentLine <= lastLine; currentLine++) {
 			final String line = lines.get(currentLine);
 			// if line is preprocessor directive
 			if (containsPreprocessorDirective(line, "ifdef|ifndef|condition|elifdef|elifndef|if|else|elif")) {
-
 				if (containsPreprocessorDirective(line, "ifdef|ifndef|condition|if")) {
 					if (block == null) {
-						// TODO: create node correctly
-						block = new CodeBlock(currentLine, null, line);
+						// last Node needs to be saved for elif
+						lastNode = nodereader.stringToNode(convertLineForNodeReader(line));
+
+						block = new CodeBlock(currentLine, lastNode, line);
 					} else {
 						ifcount++;
 					}
 				} else if (containsPreprocessorDirective(line, "elifdef|elifndef|else|elif")) {
-					// TODO: create Not node correctly
-					// final Node lastElement = new Not(expressionStack.pop().clone());
 					if (block == null) {
 						block = new CodeBlock(currentLine, null, line);
 					} else if ((ifcount == 0) && (block != null)) {
-						block.setEndLine(currentLine - 1);
-						parentBlock.addChild(block);
-						// TODO: create Not node correctly
-						block = new CodeBlock(currentLine, null);
+						if (containsPreprocessorDirective(line, "else")) {
+							block.setEndLine(currentLine - 1);
+							parentBlock.addChild(block);
+							lastNode = new Not(lastNode);
+
+							block = new CodeBlock(currentLine, null);
+						} else if (containsPreprocessorDirective(line, "elif")) {
+							block.setEndLine(currentLine - 1);
+							parentBlock.addChild(block);
+
+							final Node notNode = new Not(lastNode);
+							final Node elifNode = nodereader.stringToNode(convertLineForNodeReader(line));
+
+							final Node[] nodes = { notNode, elifNode };
+							lastNode = new And(nodes);
+
+							block = new CodeBlock(currentLine, lastNode, line);
+						}
 					}
 				}
 			} else if (containsPreprocessorDirective(line, "endif")) {
@@ -794,13 +805,18 @@ public class AntennaPreprocessor extends PPComposerExtensionClass {
 	}
 
 	private String convertLineForNodeReader(String line) {
-		line = line.trim();
-		line = line.replace("&&", "&");
-		line = line.replace("||", "|");
-		line = line.replace("!", "-");
-		line = line.replace("&", " and ");
-		line = line.replace("|", " or ");
-		line = line.replace("-", " not ");
-		return line;
+		String trimmedLine = line;
+
+		// remove "//#if ", "//ifdef", ...
+		trimmedLine = replaceCommandPattern.matcher(trimmedLine).replaceAll("");
+
+		trimmedLine = trimmedLine.trim();
+		trimmedLine = trimmedLine.replace("&&", "&");
+		trimmedLine = trimmedLine.replace("||", "|");
+		trimmedLine = trimmedLine.replace("!", "-");
+		trimmedLine = trimmedLine.replace("&", " and ");
+		trimmedLine = trimmedLine.replace("|", " or ");
+		trimmedLine = trimmedLine.replace("-", " not ");
+		return trimmedLine;
 	}
 }
