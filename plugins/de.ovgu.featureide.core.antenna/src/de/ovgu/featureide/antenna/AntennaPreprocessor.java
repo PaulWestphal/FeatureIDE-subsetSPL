@@ -55,7 +55,6 @@ import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.jobs.Job;
 import org.prop4j.And;
 import org.prop4j.Equals;
-import org.prop4j.Implies;
 import org.prop4j.Literal;
 import org.prop4j.Node;
 import org.prop4j.NodeReader.ErrorHandling;
@@ -832,15 +831,6 @@ public class AntennaPreprocessor extends PPComposerExtensionClass {
 			} else {
 				return new Not(child);
 			}
-		} else if (node instanceof Implies) {
-			final Node leftChild = replaceLiterals(node.getChildren()[0], features);
-			final Node rightChild = replaceLiterals(node.getChildren()[1], features);
-			if (leftChild instanceof False) {
-				return new True();
-			} else if (leftChild instanceof True) {
-				return rightChild;
-			}
-
 		} else if (node instanceof Equals) {
 			final Node leftChild = replaceLiterals(node.getChildren()[0], features);
 			final Node rightChild = replaceLiterals(node.getChildren()[1], features);
