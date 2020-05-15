@@ -38,6 +38,7 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Vector;
 import java.util.regex.Pattern;
 
@@ -53,10 +54,15 @@ import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.jobs.Job;
 import org.prop4j.And;
+import org.prop4j.Equals;
+import org.prop4j.Implies;
 import org.prop4j.Literal;
 import org.prop4j.Node;
 import org.prop4j.NodeReader.ErrorHandling;
 import org.prop4j.Not;
+import org.prop4j.Or;
+import org.prop4j.SatSolver;
+import org.sat4j.specs.TimeoutException;
 
 import antenna.preprocessor.v3.PPException;
 import antenna.preprocessor.v3.Preprocessor;
@@ -66,7 +72,9 @@ import de.ovgu.featureide.core.CorePlugin;
 import de.ovgu.featureide.core.IFeatureProject;
 import de.ovgu.featureide.core.builder.IComposerExtensionClass;
 import de.ovgu.featureide.core.builder.IComposerObject;
+import de.ovgu.featureide.core.builder.preprocessor.False;
 import de.ovgu.featureide.core.builder.preprocessor.PPComposerExtensionClass;
+import de.ovgu.featureide.core.builder.preprocessor.True;
 import de.ovgu.featureide.core.fstmodel.preprocessor.FSTDirective;
 import de.ovgu.featureide.core.signature.documentation.base.ADocumentationCommentParser;
 import de.ovgu.featureide.fm.core.base.IFeature;
@@ -736,8 +744,119 @@ public class AntennaPreprocessor extends PPComposerExtensionClass {
 		final CodeBlock codeBlock = new CodeBlock();
 
 		lookForCodeBlocks(codeBlock, 0, lines.size() - 1, lines);
+		try {
+			deleteRemovedFeatures(codeBlock, lines, features);
+		} catch (final TimeoutException e) {
+			e.printStackTrace();
+		}
 
 		return changed;
+	}
+
+	/**
+	 * @param codeBlock
+	 * @param lines
+	 */
+	@SuppressWarnings("deprecation")
+	private void deleteRemovedFeatures(CodeBlock codeBlock, Vector<String> lines, ArrayList<String> features) throws TimeoutException {
+		final Node beforeNode = codeBlock.getChildren().get(0).getNode();
+
+		AnnotationStatus a;
+
+		if (!new SatSolver(beforeNode, 1000).hasSolution()) {
+			a = AnnotationStatus.CONTRADICTION;
+		} else if (!new SatSolver(new Not(beforeNode), 1000).hasSolution()) {
+			a = AnnotationStatus.TAUTOLOGY;
+		}
+
+		Node afterNode = codeBlock.getChildren().get(0).getNode();
+		afterNode = replaceLiterals(afterNode, features);
+		System.out.println("debugger bleib stehen");
+
+	}
+
+	private Node replaceLiterals(Node node, ArrayList<String> features) {
+		if (node instanceof And) {
+			final List<Node> children = new ArrayList<>();
+			for (final Node child : node.getChildren()) {
+				final Node newchild = replaceLiterals(child, features);
+				if (newchild instanceof False) {
+					return newchild;
+				} else if (newchild instanceof True) {
+					continue;
+				} else {
+					children.add(newchild);
+				}
+			}
+
+			if (children.size() > 1) {
+				return new And(children);
+			} else if (children.size() == 1) {
+				return children.get(0);
+			} else if (children.size() == 0) {
+				return new True();
+			}
+
+		} else if (node instanceof Or) {
+			final List<Node> children = new ArrayList<Node>();
+			for (final Node child : node.getChildren()) {
+				final Node newchild = replaceLiterals(child, features);
+				if (newchild instanceof False) {
+					continue;
+				} else if (newchild instanceof True) {
+					return newchild;
+				} else {
+					children.add(newchild);
+				}
+			}
+			if (children.size() > 1) {
+				return new Or(children);
+			} else if (children.size() == 1) {
+				return children.get(0);
+			} else if (children.size() == 0) {
+				return new False();
+			}
+
+		} else if (node instanceof Literal) {
+			if (features.contains(((Literal) node).getContainedFeatures().get(0))) {
+				return new False();
+			} else {
+				return node;
+			}
+		} else if (node instanceof Not) {
+			final Node child = replaceLiterals(node.getChildren()[0], features);
+			if (child instanceof False) {
+				return new True();
+			} else if (child instanceof True) {
+				return new False();
+			} else {
+				return new Not(child);
+			}
+		} else if (node instanceof Implies) {
+			final Node leftChild = replaceLiterals(node.getChildren()[0], features);
+			final Node rightChild = replaceLiterals(node.getChildren()[1], features);
+			if (leftChild instanceof False) {
+				return new True();
+			} else if (leftChild instanceof True) {
+				return rightChild;
+			}
+
+		} else if (node instanceof Equals) {
+			final Node leftChild = replaceLiterals(node.getChildren()[0], features);
+			final Node rightChild = replaceLiterals(node.getChildren()[1], features);
+			if (leftChild instanceof True) {
+				return rightChild;
+			} else if (rightChild instanceof True) {
+				return leftChild;
+			} else if (leftChild instanceof False) {
+				return new Not(rightChild);
+			} else if (rightChild instanceof False) {
+				return new Not(leftChild);
+			} else {
+				return node;
+			}
+		}
+		return null;
 	}
 
 	/**

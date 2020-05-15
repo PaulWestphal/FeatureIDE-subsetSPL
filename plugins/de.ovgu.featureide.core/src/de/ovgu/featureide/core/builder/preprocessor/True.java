@@ -18,9 +18,9 @@
  *
  * See http://featureide.cs.ovgu.de/ for further information.
  */
-package de.ovgu.featureide.antenna;
+package de.ovgu.featureide.core.builder.preprocessor;
 
-import java.util.ArrayList;
+import java.util.Map;
 
 import org.prop4j.Node;
 
@@ -29,49 +29,26 @@ import org.prop4j.Node;
  *
  * @author paula
  */
-public class CodeBlock {
+public class True extends Node {
 
-	private final int startLine;
-	private int endLine;
-	private Node node;
-	private final ArrayList<CodeBlock> children = new ArrayList<CodeBlock>();
-	private String debugLine;
-
-	public CodeBlock() {
-		startLine = 0;
+	@Override
+	public boolean getValue(Map<Object, Boolean> assignment) {
+		return true;
 	}
 
-	public CodeBlock(int startLine, Node node, String line) {
-		this.startLine = startLine;
-		this.node = node;
-		debugLine = line;
+	@Override
+	public boolean isConjunctiveNormalForm() {
+		return false;
 	}
 
-	public CodeBlock(int startLine, Node node) {
-		this.startLine = startLine;
+	@Override
+	protected Node eliminateNonCNFOperators(Node[] newChildren) {
+		return null;
 	}
 
-	public int getStartLine() {
-		return startLine;
+	@Override
+	public Node clone() {
+		return new True();
 	}
 
-	public void setEndLine(int endLine) {
-		this.endLine = endLine;
-	}
-
-	public int getEndLine() {
-		return endLine;
-	}
-
-	public void addChild(CodeBlock child) {
-		children.add(child);
-	}
-
-	public ArrayList<CodeBlock> getChildren() {
-		return children;
-	}
-
-	public Node getNode() {
-		return node;
-	}
 }
