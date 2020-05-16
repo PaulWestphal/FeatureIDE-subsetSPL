@@ -717,6 +717,7 @@ public class AntennaPreprocessor extends PPComposerExtensionClass {
 				boolean changed = false;
 
 				// run antenna preprocessor
+				// muss eigentlich keinen boolean haben, einfach immer ändern
 				changed = removeFeaturesFromFile(lines, removedFeatures);
 
 				// if preprocessor changed file: save & refresh
@@ -739,7 +740,7 @@ public class AntennaPreprocessor extends PPComposerExtensionClass {
 	}
 
 	private boolean removeFeaturesFromFile(Vector<String> lines, ArrayList<String> features) {
-		final boolean changed = false;
+		final boolean changed = true;
 		final CodeBlock codeBlock = new CodeBlock();
 
 		lookForCodeBlocks(codeBlock, 0, lines.size() - 1, lines);
@@ -758,20 +759,79 @@ public class AntennaPreprocessor extends PPComposerExtensionClass {
 	 */
 	@SuppressWarnings("deprecation")
 	private void deleteRemovedFeatures(CodeBlock codeBlock, Vector<String> lines, ArrayList<String> features) throws TimeoutException {
-		final Node beforeNode = codeBlock.getChildren().get(0).getNode();
 
-		AnnotationStatus a;
+		changeAnnotations(codeBlock.getChildren(), lines, features);
 
-		if (!new SatSolver(beforeNode, 1000).hasSolution()) {
-			a = AnnotationStatus.CONTRADICTION;
-		} else if (!new SatSolver(new Not(beforeNode), 1000).hasSolution()) {
-			a = AnnotationStatus.TAUTOLOGY;
-		}
-
-		Node afterNode = codeBlock.getChildren().get(0).getNode();
-		afterNode = replaceLiterals(afterNode, features);
+		// TODO: einlesen von == fixen
 		System.out.println("debugger bleib stehen");
 
+	}
+
+	/**
+	 * @param children
+	 * @param features
+	 * @throws TimeoutException
+	 */
+	private void changeAnnotations(ArrayList<CodeBlock> children, Vector<String> lines, ArrayList<String> features) throws TimeoutException {
+		for (final CodeBlock block : children) {
+
+			final Node beforeNode = block.getNode();
+			final Node afterNode = replaceLiterals(block.getNode(), features);
+
+			// check if anything even needs to be changed for this node
+			boolean containsDeletedFeature = false;
+			for (final String featureName : beforeNode.getContainedFeatures()) {
+				if (features.contains(featureName)) {
+					containsDeletedFeature = true;
+					break;
+				}
+			}
+			if (!containsDeletedFeature) {
+				// node stayed the same
+
+			} else if (!((afterNode instanceof True) || (afterNode instanceof False))) {
+				// has a solution and is not a tautology
+				// annotation anpassen, dafür afternode zu string verarbeiten
+				lines.set(block.getStartLine(), translateToAntennaStatement(afterNode));
+			} else if (new SatSolver(beforeNode, 1000).hasSolution() && (afterNode instanceof False)) {
+				// annotation is now contradiction
+				// gesamten codeblock entfernen
+				for (int line = block.getStartLine(); line <= (block.getEndLine() - 1); line++) {
+					lines.set(line, "");
+				}
+				if (!block.endsAtElse()) {
+					// remove endif
+					lines.set(block.getEndLine(), "");
+				}
+			} else if (new SatSolver(new Not(beforeNode), 1000).hasSolution() && (afterNode instanceof True)) {
+				// annotation is now tautology
+				// annotation entfernen
+				lines.set(block.getStartLine(), "");
+				if (!block.endsAtElse()) {
+					// remove endif
+					lines.set(block.getEndLine(), "");
+				}
+			} else {
+				// irgendwas ist ganz schief gelaufen, glaube sonst kann gar nichts passieren
+				// todo: double checken
+				System.out.println("????");
+			}
+			// recursively do the same for children
+			changeAnnotations(block.getChildren(), lines, features);
+		}
+	}
+
+	/**
+	 * @param afterNode
+	 * @return
+	 */
+	private String translateToAntennaStatement(Node node) {
+		final String line = "//#if ";
+		String statement = node.toString();
+
+		statement = statement.replace("&", " && ");
+		statement = statement.replace("|", " || ");
+		return line + statement;
 	}
 
 	private Node replaceLiterals(Node node, ArrayList<String> features) {
@@ -779,6 +839,17 @@ public class AntennaPreprocessor extends PPComposerExtensionClass {
 			final List<Node> children = new ArrayList<>();
 			for (final Node child : node.getChildren()) {
 				final Node newchild = replaceLiterals(child, features);
+
+				// check if children already contains negation of child, which makes it a contradiction
+				if (children.contains(new Not(newchild))) {
+					return new False();
+				}
+				if (newchild instanceof Not) {
+					if (children.contains(((Not) newchild).getChildren()[0])) {
+						return new False();
+					}
+				}
+
 				if (newchild instanceof False) {
 					return newchild;
 				} else if (newchild instanceof True) {
@@ -800,6 +871,17 @@ public class AntennaPreprocessor extends PPComposerExtensionClass {
 			final List<Node> children = new ArrayList<Node>();
 			for (final Node child : node.getChildren()) {
 				final Node newchild = replaceLiterals(child, features);
+
+				// check if children already contains negation of child, which makes it a tautology
+				if (children.contains(new Not(newchild))) {
+					return new False();
+				}
+				if (newchild instanceof Not) {
+					if (children.contains(((Not) newchild).getChildren()[0])) {
+						return new False();
+					}
+				}
+
 				if (newchild instanceof False) {
 					continue;
 				} else if (newchild instanceof True) {
@@ -832,6 +914,7 @@ public class AntennaPreprocessor extends PPComposerExtensionClass {
 				return new Not(child);
 			}
 		} else if (node instanceof Equals) {
+			// todo: make sure this works
 			final Node leftChild = replaceLiterals(node.getChildren()[0], features);
 			final Node rightChild = replaceLiterals(node.getChildren()[1], features);
 			if (leftChild instanceof True) {
@@ -876,13 +959,13 @@ public class AntennaPreprocessor extends PPComposerExtensionClass {
 						block = new CodeBlock(currentLine, null, line);
 					} else if ((ifcount == 0) && (block != null)) {
 						if (containsPreprocessorDirective(line, "else")) {
-							block.setEndLine(currentLine - 1);
+							block.setEndLine(currentLine, true);
 							parentBlock.addChild(block);
 							lastNode = new Not(lastNode);
 
 							block = new CodeBlock(currentLine, null);
 						} else if (containsPreprocessorDirective(line, "elif")) {
-							block.setEndLine(currentLine - 1);
+							block.setEndLine(currentLine, true);
 							parentBlock.addChild(block);
 
 							final Node notNode = new Not(lastNode);
@@ -897,7 +980,7 @@ public class AntennaPreprocessor extends PPComposerExtensionClass {
 				}
 			} else if (containsPreprocessorDirective(line, "endif")) {
 				if ((ifcount == 0) && (block != null)) {
-					block.setEndLine(currentLine);
+					block.setEndLine(currentLine, false);
 					lookForCodeBlocks(block, block.getStartLine() + 1, currentLine - 1, lines);
 					parentBlock.addChild(block);
 					block = null;

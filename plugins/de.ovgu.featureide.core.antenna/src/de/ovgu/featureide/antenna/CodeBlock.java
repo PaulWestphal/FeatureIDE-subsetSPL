@@ -33,8 +33,10 @@ public class CodeBlock {
 
 	private final int startLine;
 	private int endLine;
+	private boolean endsAtElse = false;
 	private Node node;
 	private final ArrayList<CodeBlock> children = new ArrayList<CodeBlock>();
+
 	private String debugLine;
 
 	public CodeBlock() {
@@ -55,12 +57,17 @@ public class CodeBlock {
 		return startLine;
 	}
 
-	public void setEndLine(int endLine) {
+	public void setEndLine(int endLine, boolean endsAtElse) {
 		this.endLine = endLine;
+		this.endsAtElse = endsAtElse;
 	}
 
 	public int getEndLine() {
 		return endLine;
+	}
+
+	public boolean endsAtElse() {
+		return endsAtElse;
 	}
 
 	public void addChild(CodeBlock child) {
