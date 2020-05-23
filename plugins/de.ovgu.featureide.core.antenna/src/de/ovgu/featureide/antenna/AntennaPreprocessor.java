@@ -712,7 +712,7 @@ public class AntennaPreprocessor extends PPComposerExtensionClass {
 				final Vector<String> lines = loadStringsFromFile((IFile) res);
 
 				// do checking and some stuff
-				processLinesOfFile(lines, (IFile) res);
+				// processLinesOfFile(lines, (IFile) res);
 
 				boolean changed = false;
 
@@ -824,7 +824,7 @@ public class AntennaPreprocessor extends PPComposerExtensionClass {
 				for (int line = block.getStartLine(); line <= (block.getEndLine() - 1); line++) {
 					lines.set(line, "");
 				}
-				if (!block.endsAtElse() && !isElif) {
+				if (!block.endsAtElse() && !isElif && !previousAnnotationRemoved) {
 					// remove endif
 					lines.set(block.getEndLine(), "");
 				}
@@ -835,7 +835,7 @@ public class AntennaPreprocessor extends PPComposerExtensionClass {
 				// annotation is now tautology
 				// annotation entfernen
 				lines.set(block.getStartLine(), "");
-				if (!block.endsAtElse()) {
+				if (!block.endsAtElse() && !isElif && !previousAnnotationRemoved) {
 					// remove endif
 					lines.set(block.getEndLine(), "");
 				}
