@@ -67,6 +67,10 @@ import antenna.preprocessor.v3.PPException;
 import antenna.preprocessor.v3.Preprocessor;
 import de.ovgu.featureide.antenna.documentation.DocumentationCommentParser;
 import de.ovgu.featureide.antenna.model.AntennaModelBuilder;
+import de.ovgu.featureide.antenna.partialproject.CodeBlock;
+import de.ovgu.featureide.antenna.partialproject.ElifBlock;
+import de.ovgu.featureide.antenna.partialproject.ElseBlock;
+import de.ovgu.featureide.antenna.partialproject.IfBlock;
 import de.ovgu.featureide.core.CorePlugin;
 import de.ovgu.featureide.core.IFeatureProject;
 import de.ovgu.featureide.core.builder.IComposerExtensionClass;
@@ -773,33 +777,21 @@ public class AntennaPreprocessor extends PPComposerExtensionClass {
 	 * @throws TimeoutException
 	 */
 	private void changeAnnotations(ArrayList<CodeBlock> children, Vector<String> lines, ArrayList<String> features) throws TimeoutException {
-		boolean previousAnnotationRemoved = false;
+		final int ANNOTATION_KEPT = 0;
+		final int ANNOTATION_REMOVED = 1;
+		final int ANNOTATION_AND_BLOCK_REMOVED = 2;
+
+		final ArrayList<Integer> annotationDecision = new ArrayList<Integer>();
+
 		for (int i = 0; i < children.size(); i++) {
+
 			final CodeBlock block = children.get(i);
 
-			boolean isElif = false;
+			final Node beforeNode;
+			final Node afterNode;
 
-			Node beforeNode = block.getNode();
-			Node afterNode = replaceLiterals(beforeNode, features);
-
-			// if we're at an else block and previous annotation was removed, the else block is turned into an if
-			if (((i - 1) >= 0) && children.get(i - 1).endsAtElse() && !previousAnnotationRemoved) {
-				// if we're at an else block and previous annotation was NOT removed, the else block stays as else block or is removed
-				// get the node that is not the not(previous) node
-				final Node[] nodeArray = beforeNode.getChildren();
-				if (nodeArray.length == 1) {
-					// this is an else, so it just stays the same.
-
-					previousAnnotationRemoved = false;
-					changeAnnotations(block.getChildren(), lines, features);
-					continue;
-				} else if (nodeArray.length == 2) {
-					// The way elif nodes are constructed, the value at position 1 in the array is always the elif condition.
-					beforeNode = nodeArray[1];
-					afterNode = replaceLiterals(beforeNode, features);
-					isElif = true;
-				}
-			}
+			beforeNode = block.getNode();
+			afterNode = replaceLiterals(beforeNode, features, true);
 
 			// check if anything even needs to be changed for this node
 			boolean containsDeletedFeature = false;
@@ -809,45 +801,118 @@ public class AntennaPreprocessor extends PPComposerExtensionClass {
 					break;
 				}
 			}
+
+			if (block instanceof ElseBlock) {
+				// special case for else block, look at previous annotation
+				if (annotationDecision.get(i - 1) == ANNOTATION_KEPT) {
+					annotationDecision.add(ANNOTATION_KEPT);
+					changeAnnotations(block.getChildren(), lines, features);
+					continue;
+				} else if (annotationDecision.get(i - 1) == ANNOTATION_REMOVED) {
+					for (int line = block.getStartLine(); line <= (block.getEndLine() - 1); line++) {
+						lines.set(line, "");
+					}
+					annotationDecision.add(ANNOTATION_AND_BLOCK_REMOVED);
+					changeAnnotations(block.getChildren(), lines, features);
+					continue;
+				} else if (annotationDecision.get(i - 1) == ANNOTATION_AND_BLOCK_REMOVED) {
+					lines.set(block.getStartLine(), "");
+					annotationDecision.add(ANNOTATION_REMOVED);
+					continue;
+				}
+				break;
+			}
+
 			if (!containsDeletedFeature) {
 				// node stayed the same
-				previousAnnotationRemoved = false;
-
+				annotationDecision.add(ANNOTATION_KEPT);
 			} else if (!((afterNode instanceof True) || (afterNode instanceof False))) {
 				// has a solution and is not a tautology
 				// annotation anpassen, dafür afternode zu string verarbeiten
-				lines.set(block.getStartLine(), translateToAntennaStatement(afterNode, isElif));
-				previousAnnotationRemoved = false;
+
+				if (block instanceof ElifBlock) {
+					if (annotationDecision.get(i - 1) == ANNOTATION_AND_BLOCK_REMOVED) {
+						// Make an if annotation
+						lines.set(block.getStartLine(), translateToAntennaStatement(replaceLiterals(((ElifBlock) block).getElifNode(), features, true), false));
+						annotationDecision.add(ANNOTATION_KEPT);
+					} else if (replaceLiterals(((ElifBlock) block).getElifNode(), features, false) instanceof True) {
+						// Make an else annotation
+						lines.set(block.getStartLine(), "//#else");
+						annotationDecision.add(ANNOTATION_KEPT);
+					} else {
+						// Change elif
+						lines.set(block.getStartLine(), translateToAntennaStatement(((ElifBlock) block).getElifNode(), true));
+						annotationDecision.add(ANNOTATION_KEPT);
+					}
+				} else {
+					lines.set(block.getStartLine(), translateToAntennaStatement(afterNode, false));
+					annotationDecision.add(ANNOTATION_KEPT);
+				}
 			} else if (new SatSolver(beforeNode, 1000).hasSolution() && (afterNode instanceof False)) {
-				// annotation is now contradiction
+				// removing features causes this annotation to be a contradiction
 				// gesamten codeblock entfernen
 				for (int line = block.getStartLine(); line <= (block.getEndLine() - 1); line++) {
 					lines.set(line, "");
 				}
-				if (!block.endsAtElse() && !isElif && !previousAnnotationRemoved) {
-					// remove endif
-					lines.set(block.getEndLine(), "");
-				}
-				previousAnnotationRemoved = true;
-				// all children are contradiction and already deleted, so continue without handling them
-				continue;
+				annotationDecision.add(ANNOTATION_AND_BLOCK_REMOVED);
 			} else if (new SatSolver(new Not(beforeNode), 1000).hasSolution() && (afterNode instanceof True)) {
-				// annotation is now tautology
+				// removing features causes this annotation to be a tautology
 				// annotation entfernen
 				lines.set(block.getStartLine(), "");
-				if (!block.endsAtElse() && !isElif && !previousAnnotationRemoved) {
-					// remove endif
-					lines.set(block.getEndLine(), "");
+				annotationDecision.add(ANNOTATION_REMOVED);
+			} else if ((!new SatSolver(beforeNode, 1000).hasSolution() && (afterNode instanceof False))
+				|| (!new SatSolver(new Not(beforeNode), 1000).hasSolution() && (afterNode instanceof True))) {
+				// afterNode is a contradiction or a tautology, but not because of the removal of a feature
+				if (block instanceof ElifBlock) {
+					if ((replaceLiterals(((ElifBlock) block).getElifNode(), features, false) instanceof False)
+						|| (replaceLiterals(((ElifBlock) block).getElifNode(), features, false) instanceof True)) {
+						lines.set(block.getStartLine(), "//#else");
+						annotationDecision.add(ANNOTATION_KEPT);
+					} else {
+						if (annotationDecision.get(i - 1) == ANNOTATION_KEPT) {
+							lines.set(block.getStartLine(),
+									translateToAntennaStatement(replaceLiterals(((ElifBlock) block).getElifNode(), features, false), true));
+							annotationDecision.add(ANNOTATION_KEPT);
+						} else {
+							// make an if
+							lines.set(block.getStartLine(),
+									translateToAntennaStatement(replaceLiterals(((ElifBlock) block).getElifNode(), features, false), false));
+							annotationDecision.add(ANNOTATION_KEPT);
+						}
+					}
+				} else {
+					lines.set(block.getStartLine(), translateToAntennaStatement(replaceLiterals(beforeNode, features, false), false));
+					annotationDecision.add(ANNOTATION_KEPT);
 				}
-				previousAnnotationRemoved = true;
 			} else {
-				// irgendwas ist ganz schief gelaufen, glaube sonst kann gar nichts passieren
-				// todo: double checken
-				System.out.println("????");
+				// I don't think there are any other possible cases.
 			}
 
-			// recursively do the same for children
-			changeAnnotations(block.getChildren(), lines, features);
+			// recursively do the same for children if they haven't already been deleted
+			if (annotationDecision.get(i) != ANNOTATION_AND_BLOCK_REMOVED) {
+				changeAnnotations(block.getChildren(), lines, features);
+			}
+		}
+
+		// remove endif for all blocks that are completely gone
+		for (int x = 0; x < children.size(); x++) {
+			if (children.get(x) instanceof IfBlock) {
+				for (int y = x; y < children.size(); y++) {
+					if (((y + 1) == children.size()) || (children.get(y + 1) instanceof IfBlock)) {
+						boolean removeEndif = true;
+						for (int z = x; z <= y; z++) {
+							if (annotationDecision.get(z) == ANNOTATION_KEPT) {
+								removeEndif = false;
+								break;
+							}
+						}
+						if (removeEndif) {
+							lines.set(children.get(y).getEndLine(), "");
+							break;
+						}
+					}
+				}
+			}
 		}
 	}
 
@@ -871,19 +936,21 @@ public class AntennaPreprocessor extends PPComposerExtensionClass {
 		return line + statement;
 	}
 
-	private Node replaceLiterals(Node node, ArrayList<String> features) {
+	private Node replaceLiterals(Node node, ArrayList<String> features, boolean resolve) {
 		if (node instanceof And) {
 			final List<Node> children = new ArrayList<>();
 			for (final Node child : node.getChildren()) {
-				final Node newchild = replaceLiterals(child, features);
+				final Node newchild = replaceLiterals(child, features, resolve);
 
 				// check if children already contains negation of child, which makes it a contradiction
-				if (children.contains(new Not(newchild))) {
-					return new False();
-				}
-				if (newchild instanceof Not) {
-					if (children.contains(((Not) newchild).getChildren()[0])) {
+				if (resolve) {
+					if (children.contains(new Not(newchild))) {
 						return new False();
+					}
+					if (newchild instanceof Not) {
+						if (children.contains(((Not) newchild).getChildren()[0])) {
+							return new False();
+						}
 					}
 				}
 
@@ -907,15 +974,17 @@ public class AntennaPreprocessor extends PPComposerExtensionClass {
 		} else if (node instanceof Or) {
 			final List<Node> children = new ArrayList<Node>();
 			for (final Node child : node.getChildren()) {
-				final Node newchild = replaceLiterals(child, features);
+				final Node newchild = replaceLiterals(child, features, resolve);
 
 				// check if children already contains negation of child, which makes it a tautology
-				if (children.contains(new Not(newchild))) {
-					return new False();
-				}
-				if (newchild instanceof Not) {
-					if (children.contains(((Not) newchild).getChildren()[0])) {
+				if (resolve) {
+					if (children.contains(new Not(newchild))) {
 						return new False();
+					}
+					if (newchild instanceof Not) {
+						if (children.contains(((Not) newchild).getChildren()[0])) {
+							return new False();
+						}
 					}
 				}
 
@@ -942,7 +1011,7 @@ public class AntennaPreprocessor extends PPComposerExtensionClass {
 				return node;
 			}
 		} else if (node instanceof Not) {
-			final Node child = replaceLiterals(node.getChildren()[0], features);
+			final Node child = replaceLiterals(node.getChildren()[0], features, resolve);
 			if (child instanceof False) {
 				return new True();
 			} else if (child instanceof True) {
@@ -952,8 +1021,8 @@ public class AntennaPreprocessor extends PPComposerExtensionClass {
 			}
 		} else if (node instanceof Equals) {
 			// todo: make sure this works
-			final Node leftChild = replaceLiterals(node.getChildren()[0], features);
-			final Node rightChild = replaceLiterals(node.getChildren()[1], features);
+			final Node leftChild = replaceLiterals(node.getChildren()[0], features, resolve);
+			final Node rightChild = replaceLiterals(node.getChildren()[1], features, resolve);
 			if (leftChild instanceof True) {
 				return rightChild;
 			} else if (rightChild instanceof True) {
@@ -987,22 +1056,26 @@ public class AntennaPreprocessor extends PPComposerExtensionClass {
 						// last Node needs to be saved for elif
 						lastNode = nodereader.stringToNode(convertLineForNodeReader(line));
 
-						block = new CodeBlock(currentLine, lastNode, line);
+						block = new IfBlock(currentLine, lastNode, line);
 					} else {
 						ifcount++;
 					}
 				} else if (containsPreprocessorDirective(line, "elifdef|elifndef|else|elif")) {
 					if (block == null) {
-						block = new CodeBlock(currentLine, null, line);
+						if (containsPreprocessorDirective(line, "else")) {
+							block = new ElseBlock(currentLine, null, line);
+						} else if (containsPreprocessorDirective(line, "elif")) {
+							block = new ElifBlock(currentLine, null, line);
+						}
 					} else if ((ifcount == 0) && (block != null)) {
 						if (containsPreprocessorDirective(line, "else")) {
-							block.setEndLine(currentLine, true);
+							block.setEndLine(currentLine);
 							parentBlock.addChild(block);
 							lastNode = new Not(lastNode);
 
-							block = new CodeBlock(currentLine, lastNode, line);
+							block = new ElseBlock(currentLine, lastNode, line);
 						} else if (containsPreprocessorDirective(line, "elif")) {
-							block.setEndLine(currentLine, true);
+							block.setEndLine(currentLine);
 							parentBlock.addChild(block);
 
 							final Node notNode = new Not(lastNode);
@@ -1011,13 +1084,13 @@ public class AntennaPreprocessor extends PPComposerExtensionClass {
 							final Node[] nodes = { notNode, elifNode };
 							lastNode = new And(nodes);
 
-							block = new CodeBlock(currentLine, lastNode, line);
+							block = new ElifBlock(currentLine, lastNode, line);
 						}
 					}
 				}
 			} else if (containsPreprocessorDirective(line, "endif")) {
 				if ((ifcount == 0) && (block != null)) {
-					block.setEndLine(currentLine, false);
+					block.setEndLine(currentLine);
 					lookForCodeBlocks(block, block.getStartLine() + 1, currentLine - 1, lines);
 					parentBlock.addChild(block);
 					block = null;

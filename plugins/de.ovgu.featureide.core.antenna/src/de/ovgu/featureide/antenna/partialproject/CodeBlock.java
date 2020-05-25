@@ -18,7 +18,7 @@
  *
  * See http://featureide.cs.ovgu.de/ for further information.
  */
-package de.ovgu.featureide.antenna;
+package de.ovgu.featureide.antenna.partialproject;
 
 import java.util.ArrayList;
 
@@ -33,7 +33,6 @@ public class CodeBlock {
 
 	private final int startLine;
 	private int endLine;
-	private boolean endsAtElse = false;
 	private Node node;
 	private final ArrayList<CodeBlock> children = new ArrayList<CodeBlock>();
 
@@ -43,7 +42,7 @@ public class CodeBlock {
 		startLine = 0;
 	}
 
-	public CodeBlock(int startLine, Node node, String line) {
+	protected CodeBlock(int startLine, Node node, String line) {
 		this.startLine = startLine;
 		this.node = node;
 		debugLine = line;
@@ -57,17 +56,12 @@ public class CodeBlock {
 		return startLine;
 	}
 
-	public void setEndLine(int endLine, boolean endsAtElse) {
+	public void setEndLine(int endLine) {
 		this.endLine = endLine;
-		this.endsAtElse = endsAtElse;
 	}
 
 	public int getEndLine() {
 		return endLine;
-	}
-
-	public boolean endsAtElse() {
-		return endsAtElse;
 	}
 
 	public void addChild(CodeBlock child) {
