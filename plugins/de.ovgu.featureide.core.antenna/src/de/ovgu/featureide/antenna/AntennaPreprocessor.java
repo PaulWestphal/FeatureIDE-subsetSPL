@@ -792,7 +792,6 @@ public class AntennaPreprocessor extends PPComposerExtensionClass {
 
 			beforeNode = block.getNode();
 			afterNode = replaceLiterals(beforeNode, features, true);
-
 			// check if anything even needs to be changed for this node
 			boolean containsDeletedFeature = false;
 			for (final String featureName : beforeNode.getContainedFeatures()) {
@@ -979,11 +978,11 @@ public class AntennaPreprocessor extends PPComposerExtensionClass {
 				// check if children already contains negation of child, which makes it a tautology
 				if (resolve) {
 					if (children.contains(new Not(newchild))) {
-						return new False();
+						return new True();
 					}
 					if (newchild instanceof Not) {
 						if (children.contains(((Not) newchild).getChildren()[0])) {
-							return new False();
+							return new True();
 						}
 					}
 				}
