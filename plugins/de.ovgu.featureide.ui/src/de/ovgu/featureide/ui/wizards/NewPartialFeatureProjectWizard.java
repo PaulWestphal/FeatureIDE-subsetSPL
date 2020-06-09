@@ -113,7 +113,7 @@ public class NewPartialFeatureProjectWizard extends BasicNewResourceWizard {
 		while ((newFeatureProject = CorePlugin.getFeatureProject(newProject)) == null) {}
 
 		final java.nio.file.Path configPath = Paths.get(baseProject.getConfigPath() + "/" + page1.getSelectedConfiguration());
-		final PartialFeatureProjectBuilder builder = new PartialFeatureProjectBuilder(newFeatureProject, configPath);
+		final PartialFeatureProjectBuilder builder = new PartialFeatureProjectBuilder(getContainer(), newFeatureProject, configPath);
 		builder.transformProject();
 
 		return true;

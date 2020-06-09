@@ -29,6 +29,7 @@ import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -1182,7 +1183,15 @@ public class FeatureHouseComposer extends ComposerExtensionClass {
 	@Override
 	public void buildPartialFeatureProject(IFolder sourceFolder, ArrayList<String> removedFeatures, ArrayList<String> mandatoryFeatures)
 			throws IOException, CoreException {
-
+		deleteFeatureFolders(sourceFolder, removedFeatures);
 	}
 
+	private void deleteFeatureFolders(IFolder sourceFolder, ArrayList<String> removedFeatures) {
+		final ArrayList<IResource> featureFolders = new ArrayList<IResource>();
+		try {
+			Collections.addAll(featureFolders, sourceFolder.members());
+		} catch (final CoreException e) {
+			e.printStackTrace();
+		}
+	}
 }
