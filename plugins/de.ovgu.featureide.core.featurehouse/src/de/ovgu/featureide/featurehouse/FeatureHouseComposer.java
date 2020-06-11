@@ -35,6 +35,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 
+import org.eclipse.core.commands.ExecutionException;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IFolder;
 import org.eclipse.core.resources.IMarker;
@@ -52,6 +53,8 @@ import org.eclipse.jdt.core.JavaModelException;
 import org.eclipse.jdt.internal.core.ClasspathEntry;
 import org.eclipse.jdt.internal.core.JavaProject;
 import org.eclipse.jface.dialogs.MessageDialog;
+import org.eclipse.ui.PlatformUI;
+import org.eclipse.ui.ide.undo.DeleteResourcesOperation;
 import org.prop4j.NodeWriter;
 
 import AST.Problem;
@@ -1193,5 +1196,27 @@ public class FeatureHouseComposer extends ComposerExtensionClass {
 		} catch (final CoreException e) {
 			e.printStackTrace();
 		}
+
+		final ArrayList<IResource> foldersToDelete = new ArrayList<IResource>();
+
+		for (final String feature : removedFeatures) {
+			for (final IResource folder : featureFolders) {
+				final String a = folder.getName();
+				System.out.println(a);
+				if (folder.getName().equals(feature)) {
+					foldersToDelete.add(folder);
+				}
+			}
+		}
+		IResource[] foldersToDeleteArray = new IResource[foldersToDelete.size()];
+		foldersToDeleteArray = foldersToDelete.toArray(foldersToDeleteArray);
+
+		final DeleteResourcesOperation op = new DeleteResourcesOperation(foldersToDeleteArray, "Deleting Feature Folders", true);
+		try {
+			op.execute(null, PlatformUI.getWorkbench());
+		} catch (final ExecutionException e) {
+			e.printStackTrace();
+		}
+		System.out.println("a");
 	}
 }

@@ -127,6 +127,7 @@ public class NewPartialFeatureProjectWizard extends BasicNewResourceWizard {
 
 			@Override
 			public void run(IProgressMonitor monitor) {
+				// TODO: fix target path
 				final CopyProjectOperation c = new CopyProjectOperation(baseProject.getProject(), projectName, null, "Copying Project");
 				try {
 					c.execute(monitor, getWorkbench());
