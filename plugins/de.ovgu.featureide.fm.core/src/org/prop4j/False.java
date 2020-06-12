@@ -18,11 +18,9 @@
  *
  * See http://featureide.cs.ovgu.de/ for further information.
  */
-package de.ovgu.featureide.core.builder.preprocessor;
+package org.prop4j;
 
 import java.util.Map;
-
-import org.prop4j.Node;
 
 /**
  * TODO description

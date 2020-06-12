@@ -18,16 +18,14 @@
  *
  * See http://featureide.cs.ovgu.de/ for further information.
  */
-package de.ovgu.featureide.core.builder.preprocessor;
+package org.prop4j;
 
 import java.util.Map;
 
-import org.prop4j.Node;
-
 /**
- * TODO description
+ * Represents a node that is always true.
  *
- * @author paula
+ * @author Paul Westphal
  */
 public class True extends Node {
 
