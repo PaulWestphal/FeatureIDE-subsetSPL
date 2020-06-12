@@ -36,8 +36,6 @@ public class CodeBlock {
 	private Node node;
 	private final ArrayList<CodeBlock> children = new ArrayList<CodeBlock>();
 
-	private String debugLine;
-
 	public CodeBlock() {
 		startLine = 0;
 	}
@@ -45,7 +43,6 @@ public class CodeBlock {
 	protected CodeBlock(int startLine, Node node, String line) {
 		this.startLine = startLine;
 		this.node = node;
-		debugLine = line;
 	}
 
 	public CodeBlock(int startLine, Node node) {

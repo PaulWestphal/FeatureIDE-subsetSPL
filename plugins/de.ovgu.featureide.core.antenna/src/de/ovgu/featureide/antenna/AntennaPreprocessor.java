@@ -764,7 +764,7 @@ public class AntennaPreprocessor extends PPComposerExtensionClass {
 	@SuppressWarnings("deprecation")
 	private void deleteRemovedFeatures(CodeBlock codeBlock, Vector<String> lines, ArrayList<String> features) throws TimeoutException {
 
-		changeAnnotations(codeBlock.getChildren(), lines, features);
+		updateAnnotations(codeBlock.getChildren(), lines, features);
 
 		// TODO: einlesen von == fixen
 		System.out.println("debugger bleib stehen");
@@ -776,7 +776,7 @@ public class AntennaPreprocessor extends PPComposerExtensionClass {
 	 * @param features
 	 * @throws TimeoutException
 	 */
-	private void changeAnnotations(ArrayList<CodeBlock> children, Vector<String> lines, ArrayList<String> features) throws TimeoutException {
+	private void updateAnnotations(ArrayList<CodeBlock> children, Vector<String> lines, ArrayList<String> features) throws TimeoutException {
 		final int ANNOTATION_KEPT = 0;
 		final int ANNOTATION_REMOVED = 1;
 		final int ANNOTATION_AND_BLOCK_REMOVED = 2;
@@ -805,14 +805,14 @@ public class AntennaPreprocessor extends PPComposerExtensionClass {
 				// special case for else block, look at previous annotation
 				if (annotationDecision.get(i - 1) == ANNOTATION_KEPT) {
 					annotationDecision.add(ANNOTATION_KEPT);
-					changeAnnotations(block.getChildren(), lines, features);
+					updateAnnotations(block.getChildren(), lines, features);
 					continue;
 				} else if (annotationDecision.get(i - 1) == ANNOTATION_REMOVED) {
 					for (int line = block.getStartLine(); line <= (block.getEndLine() - 1); line++) {
 						lines.set(line, "");
 					}
 					annotationDecision.add(ANNOTATION_AND_BLOCK_REMOVED);
-					changeAnnotations(block.getChildren(), lines, features);
+					updateAnnotations(block.getChildren(), lines, features);
 					continue;
 				} else if (annotationDecision.get(i - 1) == ANNOTATION_AND_BLOCK_REMOVED) {
 					lines.set(block.getStartLine(), "");
@@ -832,7 +832,7 @@ public class AntennaPreprocessor extends PPComposerExtensionClass {
 				if (block instanceof ElifBlock) {
 					if (annotationDecision.get(i - 1) == ANNOTATION_AND_BLOCK_REMOVED) {
 						// Make an if annotation
-						lines.set(block.getStartLine(), translateToAntennaStatement(replaceLiterals(((ElifBlock) block).getElifNode(), features, true), false));
+						lines.set(block.getStartLine(), translateNodeToAntennaStatement(replaceLiterals(((ElifBlock) block).getElifNode(), features, true), false));
 						annotationDecision.add(ANNOTATION_KEPT);
 					} else if (replaceLiterals(((ElifBlock) block).getElifNode(), features, false) instanceof True) {
 						// Make an else annotation
@@ -840,11 +840,11 @@ public class AntennaPreprocessor extends PPComposerExtensionClass {
 						annotationDecision.add(ANNOTATION_KEPT);
 					} else {
 						// Change elif
-						lines.set(block.getStartLine(), translateToAntennaStatement(((ElifBlock) block).getElifNode(), true));
+						lines.set(block.getStartLine(), translateNodeToAntennaStatement(((ElifBlock) block).getElifNode(), true));
 						annotationDecision.add(ANNOTATION_KEPT);
 					}
 				} else {
-					lines.set(block.getStartLine(), translateToAntennaStatement(afterNode, false));
+					lines.set(block.getStartLine(), translateNodeToAntennaStatement(afterNode, false));
 					annotationDecision.add(ANNOTATION_KEPT);
 				}
 			} else if (new SatSolver(beforeNode, 1000).hasSolution() && (afterNode instanceof False)) {
@@ -870,17 +870,17 @@ public class AntennaPreprocessor extends PPComposerExtensionClass {
 					} else {
 						if (annotationDecision.get(i - 1) == ANNOTATION_KEPT) {
 							lines.set(block.getStartLine(),
-									translateToAntennaStatement(replaceLiterals(((ElifBlock) block).getElifNode(), features, false), true));
+									translateNodeToAntennaStatement(replaceLiterals(((ElifBlock) block).getElifNode(), features, false), true));
 							annotationDecision.add(ANNOTATION_KEPT);
 						} else {
 							// make an if
 							lines.set(block.getStartLine(),
-									translateToAntennaStatement(replaceLiterals(((ElifBlock) block).getElifNode(), features, false), false));
+									translateNodeToAntennaStatement(replaceLiterals(((ElifBlock) block).getElifNode(), features, false), false));
 							annotationDecision.add(ANNOTATION_KEPT);
 						}
 					}
 				} else {
-					lines.set(block.getStartLine(), translateToAntennaStatement(replaceLiterals(beforeNode, features, false), false));
+					lines.set(block.getStartLine(), translateNodeToAntennaStatement(replaceLiterals(beforeNode, features, false), false));
 					annotationDecision.add(ANNOTATION_KEPT);
 				}
 			} else {
@@ -889,7 +889,7 @@ public class AntennaPreprocessor extends PPComposerExtensionClass {
 
 			// recursively do the same for children if they haven't already been deleted
 			if (annotationDecision.get(i) != ANNOTATION_AND_BLOCK_REMOVED) {
-				changeAnnotations(block.getChildren(), lines, features);
+				updateAnnotations(block.getChildren(), lines, features);
 			}
 		}
 
@@ -919,7 +919,7 @@ public class AntennaPreprocessor extends PPComposerExtensionClass {
 	 * @param afterNode
 	 * @return
 	 */
-	private String translateToAntennaStatement(Node node, boolean elif) {
+	private String translateNodeToAntennaStatement(Node node, boolean elif) {
 		final String line;
 
 		if (elif) {
