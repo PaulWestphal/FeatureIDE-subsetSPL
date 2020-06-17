@@ -715,60 +715,47 @@ public class AntennaPreprocessor extends PPComposerExtensionClass {
 				// get all lines from file
 				final Vector<String> lines = loadStringsFromFile((IFile) res);
 
-				// do checking and some stuff
-				// processLinesOfFile(lines, (IFile) res);
-
-				boolean changed = false;
-
 				// run antenna preprocessor
-				// muss eigentlich keinen boolean haben, einfach immer ändern
-				changed = removeFeaturesFromFile(lines, removedFeatures);
+				boolean changed = false;
+				final CodeBlock codeBlock = new CodeBlock();
 
-				// if preprocessor changed file: save & refresh
+				lookForCodeBlocks(codeBlock, 0, lines.size() - 1, lines);
+				try {
+					changed = updateAnnotations(codeBlock.getChildren(), lines, removedFeatures);
+				} catch (final TimeoutException e) {
+					e.printStackTrace();
+				}
+
+				// if this process changed file: check if the file should be deleted entirely, save & refresh
 				if (changed) {
-					FileOutputStream ostr = null;
-					try {
-						ostr = new FileOutputStream(res.getRawLocation().toOSString());
-						Preprocessor.saveStrings(lines, ostr, ((IFile) res).getCharset());
-					} finally {
-						if (ostr != null) {
-							ostr.close();
+					if (isFileBlank(lines)) {
+						res.delete(true, null);
+					} else {
+						FileOutputStream ostr = null;
+						try {
+							ostr = new FileOutputStream(res.getRawLocation().toOSString());
+							Preprocessor.saveStrings(lines, ostr, ((IFile) res).getCharset());
+						} finally {
+							if (ostr != null) {
+								ostr.close();
+							}
 						}
+						// use touch to support e.g. linux
+						res.touch(null);
+						res.refreshLocal(IResource.DEPTH_ZERO, null);
 					}
-					// use touch to support e.g. linux
-					res.touch(null);
-					res.refreshLocal(IResource.DEPTH_ZERO, null);
 				}
 			}
 		}
 	}
 
-	private boolean removeFeaturesFromFile(Vector<String> lines, ArrayList<String> features) {
-		final boolean changed = true;
-		final CodeBlock codeBlock = new CodeBlock();
-
-		lookForCodeBlocks(codeBlock, 0, lines.size() - 1, lines);
-		try {
-			deleteRemovedFeatures(codeBlock, lines, features);
-		} catch (final TimeoutException e) {
-			e.printStackTrace();
+	private boolean isFileBlank(Vector<String> lines) {
+		for (final String line : lines) {
+			if (line.trim().length() > 0) {
+				return false;
+			}
 		}
-
-		return changed;
-	}
-
-	/**
-	 * @param codeBlock
-	 * @param lines
-	 */
-	@SuppressWarnings("deprecation")
-	private void deleteRemovedFeatures(CodeBlock codeBlock, Vector<String> lines, ArrayList<String> features) throws TimeoutException {
-
-		updateAnnotations(codeBlock.getChildren(), lines, features);
-
-		// TODO: einlesen von == fixen
-		System.out.println("debugger bleib stehen");
-
+		return true;
 	}
 
 	/**
@@ -776,7 +763,7 @@ public class AntennaPreprocessor extends PPComposerExtensionClass {
 	 * @param features
 	 * @throws TimeoutException
 	 */
-	private void updateAnnotations(ArrayList<CodeBlock> children, Vector<String> lines, ArrayList<String> features) throws TimeoutException {
+	private boolean updateAnnotations(ArrayList<CodeBlock> children, Vector<String> lines, ArrayList<String> features) throws TimeoutException {
 		final int ANNOTATION_KEPT = 0;
 		final int ANNOTATION_REMOVED = 1;
 		final int ANNOTATION_AND_BLOCK_REMOVED = 2;
@@ -832,7 +819,8 @@ public class AntennaPreprocessor extends PPComposerExtensionClass {
 				if (block instanceof ElifBlock) {
 					if (annotationDecision.get(i - 1) == ANNOTATION_AND_BLOCK_REMOVED) {
 						// Make an if annotation
-						lines.set(block.getStartLine(), translateNodeToAntennaStatement(replaceLiterals(((ElifBlock) block).getElifNode(), features, true), false));
+						lines.set(block.getStartLine(),
+								translateNodeToAntennaStatement(replaceLiterals(((ElifBlock) block).getElifNode(), features, true), false));
 						annotationDecision.add(ANNOTATION_KEPT);
 					} else if (replaceLiterals(((ElifBlock) block).getElifNode(), features, false) instanceof True) {
 						// Make an else annotation
@@ -913,6 +901,14 @@ public class AntennaPreprocessor extends PPComposerExtensionClass {
 				}
 			}
 		}
+
+		for (final int decision : annotationDecision) {
+			if (decision != ANNOTATION_KEPT) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	/**
@@ -1115,9 +1111,13 @@ public class AntennaPreprocessor extends PPComposerExtensionClass {
 		trimmedLine = trimmedLine.replace("&&", "&");
 		trimmedLine = trimmedLine.replace("||", "|");
 		trimmedLine = trimmedLine.replace("!", "-");
+		trimmedLine = trimmedLine.replace("==", "=");
+
 		trimmedLine = trimmedLine.replace("&", " and ");
 		trimmedLine = trimmedLine.replace("|", " or ");
 		trimmedLine = trimmedLine.replace("-", " not ");
+
+		trimmedLine = trimmedLine.replace("=", " iff ");
 		return trimmedLine;
 	}
 }
