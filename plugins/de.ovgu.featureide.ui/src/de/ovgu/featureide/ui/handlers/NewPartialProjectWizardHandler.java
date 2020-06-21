@@ -30,9 +30,9 @@ import de.ovgu.featureide.ui.handlers.base.AFeatureProjectHandler;
 import de.ovgu.featureide.ui.wizards.NewPartialFeatureProjectWizard;
 
 /**
- * TODO description
+ * Handler for PartialFeatureProjectWizard
  *
- * @author paula
+ * @author Paul Westphal
  */
 public class NewPartialProjectWizardHandler extends AFeatureProjectHandler {
 
@@ -50,5 +50,4 @@ public class NewPartialProjectWizardHandler extends AFeatureProjectHandler {
 		wizard.init(PlatformUI.getWorkbench(), selection);
 		new WizardDialog(PlatformUI.getWorkbench().getActiveWorkbenchWindow().getShell(), wizard).open();
 	}
-
 }

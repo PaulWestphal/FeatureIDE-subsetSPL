@@ -1112,6 +1112,20 @@
 					</reference>
 				</visibleWhen>
 			</command>
+   <command
+         commandId="de.ovgu.featureide.ui.newpartialconfig"
+         icon="icons/FeatureIconSmall.ico"
+         id="de.ovgu.featureide.fm.ui.actions.NewPartialProjectWizard"
+         label="Derive Partial Project"
+         style="push"
+         tooltip="Derive Partial Feature Project using a configuration file.">
+      <visibleWhen
+            checkEnabled="false">
+         <reference
+               definitionId="de.ovgu.featureide.ui.expressions.containsOnlyProjects">
+         </reference>
+      </visibleWhen>
+   </command>
 			<command
 					commandId="de.ovgu.featureide.ui.commands.buildFeatureGraph"
 					icon="icons/FeatureIconSmall.ico"
@@ -1163,13 +1177,6 @@
 					</reference>
 				</visibleWhen>
 			</dynamic>
-   <command
-         commandId="de.ovgu.featureide.ui.newpartialconfig"
-         id="de.ovgu.featureide.fm.ui.actions.NewPartialProjectWizard"
-         label="Create Partial Project"
-         style="push"
-         tooltip="tooltip test">
-   </command>
 		</menuContribution>
 
 		<menuContribution

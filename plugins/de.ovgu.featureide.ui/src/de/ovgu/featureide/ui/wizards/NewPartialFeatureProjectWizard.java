@@ -46,7 +46,7 @@ import de.ovgu.featureide.ui.UIPlugin;
 
 /**
  * This wizard allows the creation of a Partial Feature Project, using a FeatureIDE project (with a composer that supports the creation of a partial feature
- * project) partial configuration.
+ * project) and a configuration.
  *
  * @author Paul Westphal
  */
