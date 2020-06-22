@@ -578,7 +578,7 @@ public class RuntimeParameters extends ComposerExtensionClass {
 	}
 
 	@Override
-	public void buildPartialFeatureProject(IFolder sourceFolder, ArrayList<String> removedFeatures, ArrayList<String> mandatoryFeatures)
+	public void buildPartialFeatureProjectAssets(IFolder sourceFolder, ArrayList<String> removedFeatures, ArrayList<String> mandatoryFeatures)
 			throws IOException, CoreException {}
 
 }

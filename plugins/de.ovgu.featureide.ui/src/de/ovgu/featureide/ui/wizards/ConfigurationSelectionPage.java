@@ -47,6 +47,7 @@ public class ConfigurationSelectionPage extends WizardPage {
 
 	public ConfigurationSelectionPage(List<String> configList, String defaultConfig) {
 		super("");
+		setDescription("Select the configuration that you want to use to derive a new partial feature project.");
 		this.configList = configList;
 		this.defaultConfig = defaultConfig;
 		configurationName = defaultConfig;

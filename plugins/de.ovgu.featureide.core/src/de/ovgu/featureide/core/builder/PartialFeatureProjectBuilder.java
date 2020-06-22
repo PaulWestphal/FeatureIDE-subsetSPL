@@ -47,7 +47,7 @@ import de.ovgu.featureide.fm.core.job.LongRunningWrapper;
 import de.ovgu.featureide.fm.core.job.SliceFeatureModel;
 
 /**
- * TODO description
+ * Modifies the copy of a FeatureIDE project using a configuration, such that it becomes a subset of the original project.
  *
  * @author Paul Westphal
  */
@@ -88,7 +88,7 @@ public class PartialFeatureProjectBuilder {
 		FeatureModelManager.save(slicedModel, fmPath, project.getComposer().getFeatureModelFormat());
 		if (project.getComposer().supportsPartialFeatureProject()) {
 			try {
-				project.getComposer().buildPartialFeatureProject(sourceFolder, removedFeatureNameList, mandatoryFeatureNameList);
+				project.getComposer().buildPartialFeatureProjectAssets(sourceFolder, removedFeatureNameList, mandatoryFeatureNameList);
 			} catch (IOException | CoreException e) {
 				e.printStackTrace();
 			}

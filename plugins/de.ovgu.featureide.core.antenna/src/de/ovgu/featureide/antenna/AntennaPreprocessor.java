@@ -701,12 +701,12 @@ public class AntennaPreprocessor extends PPComposerExtensionClass {
 	}
 
 	@Override
-	public void buildPartialFeatureProject(IFolder sourceFolder, ArrayList<String> removedFeatures, ArrayList<String> mandatoryFeatures)
+	public void buildPartialFeatureProjectAssets(IFolder sourceFolder, ArrayList<String> removedFeatures, ArrayList<String> mandatoryFeatures)
 			throws IOException, CoreException {
 		for (final IResource res : sourceFolder.members()) {
 			if (res instanceof IFolder) {
 				// for folders do recursively
-				buildPartialFeatureProject((IFolder) res, removedFeatures, mandatoryFeatures);
+				buildPartialFeatureProjectAssets((IFolder) res, removedFeatures, mandatoryFeatures);
 			} else if (res instanceof IFile) {
 				// delete all existing builder markers
 

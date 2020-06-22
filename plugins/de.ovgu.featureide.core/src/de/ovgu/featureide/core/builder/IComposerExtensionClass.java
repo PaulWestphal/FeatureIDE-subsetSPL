@@ -221,6 +221,6 @@ public interface IComposerExtensionClass extends IComposerExtensionBase {
 	 * @throws CoreException
 	 * @throws IOException
 	 */
-	void buildPartialFeatureProject(IFolder sourceFolder, ArrayList<String> removedFeatures, ArrayList<String> mandatoryFeatures)
+	void buildPartialFeatureProjectAssets(IFolder sourceFolder, ArrayList<String> removedFeatures, ArrayList<String> mandatoryFeatures)
 			throws IOException, CoreException;
 }

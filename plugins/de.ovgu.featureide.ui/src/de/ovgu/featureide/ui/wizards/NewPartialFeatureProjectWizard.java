@@ -46,7 +46,8 @@ import de.ovgu.featureide.ui.UIPlugin;
 
 /**
  * This wizard allows the creation of a Partial Feature Project, using a FeatureIDE project (with a composer that supports the creation of a partial feature
- * project) and a configuration.
+ * project) and a configuration. Copies the FeatureIDE project and passes it to @see de.ovgu.featureide.core.builder.PartialFeatureProjectBuilder for further
+ * steps.
  *
  * @author Paul Westphal
  */
@@ -55,10 +56,10 @@ public class NewPartialFeatureProjectWizard extends BasicNewResourceWizard {
 	private final static Image colorImage = FMUIPlugin.getDefault().getImageDescriptor("icons/FeatureIconSmall.ico").createImage();
 	public static final String ID = UIPlugin.PLUGIN_ID + ".NewPartialProjectWizard";
 
-	private final IFeatureProject baseProject;
-
 	private ConfigurationSelectionPage page1;
 	private WizardNewProjectCreationPage page2;
+
+	private final IFeatureProject baseProject;
 
 	public NewPartialFeatureProjectWizard(IFeatureProject featureproject) {
 		super();
@@ -95,8 +96,8 @@ public class NewPartialFeatureProjectWizard extends BasicNewResourceWizard {
 				Dialog.applyDialogFont(getControl());
 			}
 		};
-		page2.setTitle("New Partial Feature Project platzhalter");
-		page2.setDescription("Bla bla platzhalter beschreibung");
+		page2.setTitle("Derive new partial feature project.");
+		page2.setDescription("");
 		page2.setInitialProjectName(baseProject.getProject().getName() + "_partial");
 		addPage(page2);
 
