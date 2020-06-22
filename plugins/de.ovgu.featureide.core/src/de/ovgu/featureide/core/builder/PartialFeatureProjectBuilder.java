@@ -21,21 +21,14 @@
 package de.ovgu.featureide.core.builder;
 
 import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 
-import org.eclipse.core.commands.ExecutionException;
 import org.eclipse.core.resources.IFolder;
 import org.eclipse.core.resources.IResource;
 import org.eclipse.core.runtime.CoreException;
-import org.eclipse.core.runtime.IProgressMonitor;
-import org.eclipse.jface.operation.IRunnableWithProgress;
-import org.eclipse.jface.wizard.IWizardContainer;
-import org.eclipse.ui.PlatformUI;
-import org.eclipse.ui.ide.undo.DeleteResourcesOperation;
 
 import de.ovgu.featureide.core.IFeatureProject;
 import de.ovgu.featureide.fm.core.base.IFeature;
@@ -53,8 +46,6 @@ import de.ovgu.featureide.fm.core.job.SliceFeatureModel;
  */
 public class PartialFeatureProjectBuilder {
 
-	private final IWizardContainer container;
-
 	private final IFeatureProject project;
 	private Configuration config;
 	private IFeatureModel slicedModel;
@@ -62,8 +53,7 @@ public class PartialFeatureProjectBuilder {
 
 	private final Path configPath;
 
-	public PartialFeatureProjectBuilder(IWizardContainer container, IFeatureProject project, Path configPath) {
-		this.container = container;
+	public PartialFeatureProjectBuilder(IFeatureProject project, Path configPath) {
 
 		this.project = project;
 		this.configPath = configPath;
@@ -104,36 +94,15 @@ public class PartialFeatureProjectBuilder {
 		}
 
 		for (final IResource resource : configurations) {
-			if (resource.getName().equals(configPath.getFileName().toString())) {
-				configurations.remove(resource);
-				break;
-			}
-		}
-
-		IResource[] configurationsArray = new IResource[configurations.size()];
-		configurationsArray = configurations.toArray(configurationsArray);
-		final IResource[] configurationsToDelete = configurationsArray;
-
-		final IRunnableWithProgress runnable = new IRunnableWithProgress() {
-
-			@Override
-			public void run(final IProgressMonitor monitor) {
-				final DeleteResourcesOperation op = new DeleteResourcesOperation(configurationsToDelete, "Deleting Configurations", true);
+			if (!resource.getName().equals(configPath.getFileName().toString())) {
 				try {
-					op.execute(monitor, PlatformUI.getWorkbench());
-				} catch (final ExecutionException e) {
+					resource.delete(true, null);
+				} catch (final CoreException e) {
 					e.printStackTrace();
 				}
 			}
-		};
-
-		try {
-			container.run(true, true, runnable);
-		} catch (final InvocationTargetException e) {
-			e.printStackTrace();
-		} catch (final InterruptedException e) {
-			e.printStackTrace();
 		}
+
 	}
 
 	private void setFeaturesMandatory(ArrayList<String> features) {
