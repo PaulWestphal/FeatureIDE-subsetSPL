@@ -803,7 +803,12 @@ public abstract class Node {
 
 		} else if (node instanceof Literal) {
 			if (features.contains(((Literal) node).getContainedFeatures().get(0))) {
-				return new False();
+				if (((Literal) node).positive) {
+					return new False();
+				} else {
+					return new True();
+				}
+
 			} else {
 				return node;
 			}

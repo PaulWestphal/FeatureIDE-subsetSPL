@@ -26,7 +26,6 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 
-import org.eclipse.core.resources.IFolder;
 import org.eclipse.core.resources.IResource;
 import org.eclipse.core.runtime.CoreException;
 
@@ -49,7 +48,6 @@ public class PartialFeatureProjectBuilder {
 	private final IFeatureProject project;
 	private Configuration config;
 	private IFeatureModel slicedModel;
-	private final IFolder sourceFolder;
 
 	private final Path configPath;
 
@@ -57,7 +55,6 @@ public class PartialFeatureProjectBuilder {
 
 		this.project = project;
 		this.configPath = configPath;
-		sourceFolder = project.getSourceFolder();
 	}
 
 	public void transformProject() {
@@ -66,19 +63,18 @@ public class PartialFeatureProjectBuilder {
 		deleteConfigurations();
 
 		final ArrayList<String> featureNameList = getFeatureNames();
-		final ArrayList<String> removedFeatureNameList = new ArrayList<String>(config.getUnSelectedFeatureNames());
+		final ArrayList<String> removedFeatureNameList = new ArrayList<String>(config.getUnselectedFeatureNames());
 		slicedModel = LongRunningWrapper.runMethod(new SliceFeatureModel(project.getFeatureModel(), featureNameList, true));
 
 		final ArrayList<String> mandatoryFeatureNameList = new ArrayList<String>();
 		mandatoryFeatureNameList.addAll(config.getSelectedFeatureNames());
 		setFeaturesMandatory(mandatoryFeatureNameList);
 
-		// overwrite old feature model
 		final Path fmPath = Paths.get(project.getFeatureModel().getSourceFile().toString().replace("\\", "/"));
 		FeatureModelManager.save(slicedModel, fmPath, project.getComposer().getFeatureModelFormat());
 		if (project.getComposer().supportsPartialFeatureProject()) {
 			try {
-				project.getComposer().buildPartialFeatureProjectAssets(sourceFolder, removedFeatureNameList, mandatoryFeatureNameList);
+				project.getComposer().buildPartialFeatureProjectAssets(project.getSourceFolder(), removedFeatureNameList, mandatoryFeatureNameList);
 			} catch (IOException | CoreException e) {
 				e.printStackTrace();
 			}
@@ -102,7 +98,6 @@ public class PartialFeatureProjectBuilder {
 				}
 			}
 		}
-
 	}
 
 	private void setFeaturesMandatory(ArrayList<String> features) {
@@ -124,7 +119,7 @@ public class PartialFeatureProjectBuilder {
 
 	private Configuration getConfiguration() {
 		if (ConfigurationManager.isFileSupported(configPath)) {
-			return config = ConfigurationManager.getInstance(configPath).getObject();
+			return ConfigurationManager.getInstance(configPath).getObject();
 		} else {
 			return null;
 		}

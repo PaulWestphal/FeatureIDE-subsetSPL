@@ -81,6 +81,7 @@ public class NewPartialFeatureProjectWizard extends BasicNewResourceWizard {
 		final String currentConfig = baseProject.getCurrentConfiguration().toString().replace("\\", "/").replace(configPath, "");
 
 		page1 = new ConfigurationSelectionPage(configNames, currentConfig);
+		page1.setDescription("Select the configuration that you want to use to derive a new partial feature project.");
 		final Shell shell = getShell();
 		if (shell != null) {
 			shell.setImage(colorImage);

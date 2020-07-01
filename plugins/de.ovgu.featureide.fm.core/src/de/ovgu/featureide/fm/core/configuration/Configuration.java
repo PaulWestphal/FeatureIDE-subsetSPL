@@ -240,7 +240,7 @@ public class Configuration implements Cloneable {
 		return result;
 	}
 
-	public Set<String> getUnSelectedFeatureNames() {
+	public Set<String> getUnselectedFeatureNames() {
 		final Set<String> result = new HashSet<String>();
 		for (final SelectableFeature feature : selectableFeatures.values()) {
 			if (feature.getSelection() == Selection.UNSELECTED) {
