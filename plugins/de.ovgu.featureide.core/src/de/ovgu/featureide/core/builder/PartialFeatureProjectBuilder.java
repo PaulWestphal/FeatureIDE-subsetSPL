@@ -25,18 +25,24 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 
 import org.eclipse.core.resources.IResource;
 import org.eclipse.core.runtime.CoreException;
+import org.prop4j.False;
+import org.prop4j.Literal;
+import org.prop4j.Node;
+import org.prop4j.Not;
+import org.prop4j.True;
 
 import de.ovgu.featureide.core.IFeatureProject;
+import de.ovgu.featureide.fm.core.base.IConstraint;
 import de.ovgu.featureide.fm.core.base.IFeature;
 import de.ovgu.featureide.fm.core.base.IFeatureModel;
+import de.ovgu.featureide.fm.core.base.impl.Constraint;
 import de.ovgu.featureide.fm.core.configuration.Configuration;
 import de.ovgu.featureide.fm.core.io.manager.ConfigurationManager;
 import de.ovgu.featureide.fm.core.io.manager.FeatureModelManager;
-import de.ovgu.featureide.fm.core.job.LongRunningWrapper;
-import de.ovgu.featureide.fm.core.job.SliceFeatureModel;
 
 /**
  * Modifies the copy of a FeatureIDE project using a configuration, such that it becomes a subset of the original project.
@@ -47,7 +53,7 @@ public class PartialFeatureProjectBuilder {
 
 	private final IFeatureProject project;
 	private Configuration config;
-	private IFeatureModel slicedModel;
+	private IFeatureModel modifiedModel;
 
 	private final Path configPath;
 
@@ -64,20 +70,67 @@ public class PartialFeatureProjectBuilder {
 
 		final ArrayList<String> featureNameList = getFeatureNames();
 		final ArrayList<String> removedFeatureNameList = new ArrayList<String>(config.getUnselectedFeatureNames());
-		slicedModel = LongRunningWrapper.runMethod(new SliceFeatureModel(project.getFeatureModel(), featureNameList, true));
-
 		final ArrayList<String> mandatoryFeatureNameList = new ArrayList<String>();
 		mandatoryFeatureNameList.addAll(config.getSelectedFeatureNames());
-		setFeaturesMandatory(mandatoryFeatureNameList);
+
+		modifiedModel = modifyFeatureModel(project.getFeatureModel(), featureNameList, removedFeatureNameList, mandatoryFeatureNameList);
 
 		final Path fmPath = Paths.get(project.getFeatureModel().getSourceFile().toString().replace("\\", "/"));
-		FeatureModelManager.save(slicedModel, fmPath, project.getComposer().getFeatureModelFormat());
+		FeatureModelManager.save(modifiedModel, fmPath, project.getComposer().getFeatureModelFormat());
 		if (project.getComposer().supportsPartialFeatureProject()) {
 			try {
 				project.getComposer().buildPartialFeatureProjectAssets(project.getSourceFolder(), removedFeatureNameList, mandatoryFeatureNameList);
 			} catch (IOException | CoreException e) {
 				e.printStackTrace();
 			}
+		}
+	}
+
+	/**
+	 * @return
+	 */
+	private IFeatureModel modifyFeatureModel(IFeatureModel model, ArrayList<String> keptFeatures, ArrayList<String> removedFeatures,
+			ArrayList<String> selectedFeatures) {
+		final List<IConstraint> modelconstraints = model.getConstraints();
+		final ArrayList<IConstraint> constraints = new ArrayList<IConstraint>();
+		constraints.addAll(modelconstraints);
+		modifyConstraints(constraints, removedFeatures, model);
+		deleteFeatures(removedFeatures, model);
+		setFeaturesMandatory(selectedFeatures, model);
+		return model;
+	}
+
+	private void modifyConstraints(ArrayList<IConstraint> constraints, ArrayList<String> removedFeatures, IFeatureModel model) {
+		final ArrayList<IConstraint> constraintsToDelete = new ArrayList<IConstraint>();
+		final ArrayList<IConstraint> constraintsToAdd = new ArrayList<IConstraint>();
+
+		for (final IConstraint constraint : constraints) {
+			for (final String feature : removedFeatures) {
+				if (constraint.getNode().getUniqueContainedFeatures().contains(feature)) {
+					constraintsToDelete.add(constraint);
+
+					final Node newNode = Node.replaceLiterals(constraint.getNode().toCNF(), removedFeatures, true);
+					if (newNode instanceof True) {
+						// Constraint is now tautology and was removed, nothing to do now.
+					} else if (newNode instanceof False) {
+						// Constraint is now contradiction and makes the feature model void.
+						constraintsToAdd.add(new Constraint(model, new Not(new Literal(model.getStructure().getRoot().getFeature().getName()))));
+					} else {
+						constraintsToAdd.add(new Constraint(model, newNode));
+					}
+					break;
+				}
+			}
+		}
+
+		constraints.removeAll(constraintsToDelete);
+		constraints.addAll(constraintsToAdd);
+		model.setConstraints(constraints);
+	}
+
+	private void deleteFeatures(ArrayList<String> removedFeatures, IFeatureModel model) {
+		for (final String feature : removedFeatures) {
+			model.deleteFeature(model.getFeature(feature));
 		}
 	}
 
@@ -100,9 +153,9 @@ public class PartialFeatureProjectBuilder {
 		}
 	}
 
-	private void setFeaturesMandatory(ArrayList<String> features) {
+	private void setFeaturesMandatory(ArrayList<String> features, IFeatureModel model) {
 		features.forEach((selectedFeatureName) -> {
-			final IFeature feature = slicedModel.getFeature(selectedFeatureName);
+			final IFeature feature = model.getFeature(selectedFeatureName);
 			if (feature != null) {
 				feature.getStructure().setMandatory(true);
 			}
