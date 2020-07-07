@@ -29,6 +29,7 @@ import java.util.List;
 
 import org.eclipse.core.resources.IResource;
 import org.eclipse.core.runtime.CoreException;
+import org.prop4j.And;
 import org.prop4j.False;
 import org.prop4j.Literal;
 import org.prop4j.Node;
@@ -39,6 +40,7 @@ import de.ovgu.featureide.core.IFeatureProject;
 import de.ovgu.featureide.fm.core.base.IConstraint;
 import de.ovgu.featureide.fm.core.base.IFeature;
 import de.ovgu.featureide.fm.core.base.IFeatureModel;
+import de.ovgu.featureide.fm.core.base.IFeatureStructure;
 import de.ovgu.featureide.fm.core.base.impl.Constraint;
 import de.ovgu.featureide.fm.core.configuration.Configuration;
 import de.ovgu.featureide.fm.core.io.manager.ConfigurationManager;
@@ -70,39 +72,61 @@ public class PartialFeatureProjectBuilder {
 
 		final ArrayList<String> featureNameList = getFeatureNames();
 		final ArrayList<String> removedFeatureNameList = new ArrayList<String>(config.getUnselectedFeatureNames());
-		final ArrayList<String> mandatoryFeatureNameList = new ArrayList<String>();
-		mandatoryFeatureNameList.addAll(config.getSelectedFeatureNames());
+		final ArrayList<String> selectedFeatureNameList = new ArrayList<String>();
+		selectedFeatureNameList.addAll(config.getSelectedFeatureNames());
 
-		modifiedModel = modifyFeatureModel(project.getFeatureModel(), featureNameList, removedFeatureNameList, mandatoryFeatureNameList);
+		modifiedModel = modifyFeatureModel(project.getFeatureModel(), featureNameList, removedFeatureNameList, selectedFeatureNameList);
 
 		final Path fmPath = Paths.get(project.getFeatureModel().getSourceFile().toString().replace("\\", "/"));
 		FeatureModelManager.save(modifiedModel, fmPath, project.getComposer().getFeatureModelFormat());
 		if (project.getComposer().supportsPartialFeatureProject()) {
 			try {
-				project.getComposer().buildPartialFeatureProjectAssets(project.getSourceFolder(), removedFeatureNameList, mandatoryFeatureNameList);
+				project.getComposer().buildPartialFeatureProjectAssets(project.getSourceFolder(), removedFeatureNameList, selectedFeatureNameList);
 			} catch (IOException | CoreException e) {
 				e.printStackTrace();
 			}
 		}
 	}
 
-	/**
-	 * @return
-	 */
 	private IFeatureModel modifyFeatureModel(IFeatureModel model, ArrayList<String> keptFeatures, ArrayList<String> removedFeatures,
 			ArrayList<String> selectedFeatures) {
 		final List<IConstraint> modelconstraints = model.getConstraints();
 		final ArrayList<IConstraint> constraints = new ArrayList<IConstraint>();
 		constraints.addAll(modelconstraints);
-		modifyConstraints(constraints, removedFeatures, model);
+		modifyConstraints(constraints, removedFeatures, selectedFeatures, model);
 		deleteFeatures(removedFeatures, model);
-		setFeaturesMandatory(selectedFeatures, model);
 		return model;
 	}
 
-	private void modifyConstraints(ArrayList<IConstraint> constraints, ArrayList<String> removedFeatures, IFeatureModel model) {
+	private void modifyConstraints(ArrayList<IConstraint> constraints, ArrayList<String> removedFeatures, ArrayList<String> selectedFeatures,
+			IFeatureModel model) {
 		final ArrayList<IConstraint> constraintsToDelete = new ArrayList<IConstraint>();
 		final ArrayList<IConstraint> constraintsToAdd = new ArrayList<IConstraint>();
+
+		// Features that are now dead because their parents get removed
+		final ArrayList<String> deadFeatures = new ArrayList<String>();
+		for (final String feature : removedFeatures) {
+			deadFeatures.addAll(getAllChildren(new ArrayList<String>(), feature, model));
+		}
+		deadFeatures.removeAll(removedFeatures);
+
+		if (!deadFeatures.isEmpty()) {
+			Node deadFeaturesConstraintNode = new Not(new Literal(deadFeatures.get(0)));
+			for (int i = 1; i < deadFeatures.size(); i++) {
+				deadFeaturesConstraintNode = new And(deadFeaturesConstraintNode, new Not(new Literal(deadFeatures.get(i))));
+			}
+			constraintsToAdd.add(new Constraint(model, deadFeaturesConstraintNode));
+		}
+
+		// Features that are now core features because they were selected in the configuration
+		final ArrayList<String> coreFeatures = new ArrayList<String>();
+		if (!coreFeatures.isEmpty()) {
+			Node coreFeaturesConstraintNode = new Literal(coreFeatures.get(0));
+			for (int i = 1; i < coreFeatures.size(); i++) {
+				coreFeaturesConstraintNode = new And(coreFeaturesConstraintNode, new Literal(coreFeatures.get(i)));
+			}
+			constraintsToAdd.add(new Constraint(model, coreFeaturesConstraintNode));
+		}
 
 		for (final IConstraint constraint : constraints) {
 			for (final String feature : removedFeatures) {
@@ -130,8 +154,34 @@ public class PartialFeatureProjectBuilder {
 
 	private void deleteFeatures(ArrayList<String> removedFeatures, IFeatureModel model) {
 		for (final String feature : removedFeatures) {
-			model.deleteFeature(model.getFeature(feature));
+			if ((model.getFeature(feature).getStructure().getParent().getChildrenCount() == 2)
+				&& (model.getFeature(feature).getStructure().getParent().isAlternative() || model.getFeature(feature).getStructure().getParent().isOr())) {
+				final List<IFeatureStructure> children = model.getFeature(feature).getStructure().getParent().getChildren();
+				final IFeature otherChild;
+				if (children.get(0).getFeature().getName().equals(feature)) {
+					otherChild = model.getFeature(children.get(1).getFeature().getName());
+				} else {
+					otherChild = model.getFeature(children.get(0).getFeature().getName());
+				}
+				model.deleteFeature(model.getFeature(feature));
+				otherChild.getStructure().setMandatory(true);
+			} else {
+				model.deleteFeature(model.getFeature(feature));
+			}
 		}
+	}
+
+	private ArrayList<String> getAllChildren(ArrayList<String> children, String feature, IFeatureModel model) {
+
+		children.add(feature);
+
+		final List<IFeatureStructure> nextChildren = model.getFeature(feature).getStructure().getChildren();
+
+		for (final IFeatureStructure child : nextChildren) {
+
+			getAllChildren(children, child.getFeature().getName(), model);
+		}
+		return children;
 	}
 
 	private void deleteConfigurations() {
@@ -151,16 +201,6 @@ public class PartialFeatureProjectBuilder {
 				}
 			}
 		}
-	}
-
-	private void setFeaturesMandatory(ArrayList<String> features, IFeatureModel model) {
-		features.forEach((selectedFeatureName) -> {
-			final IFeature feature = model.getFeature(selectedFeatureName);
-			if (feature != null) {
-				feature.getStructure().setMandatory(true);
-			}
-		});
-		return;
 	}
 
 	private ArrayList<String> getFeatureNames() {
