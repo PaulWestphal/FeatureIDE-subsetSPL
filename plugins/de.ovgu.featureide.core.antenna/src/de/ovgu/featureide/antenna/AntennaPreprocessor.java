@@ -824,10 +824,14 @@ public class AntennaPreprocessor extends PPComposerExtensionClass {
 						if (children.get(x) instanceof ElifBlock) {
 							continue;
 						}
-
-						if ((children.get(x) instanceof IfBlock)
-							&& ((annotationDecision.get(x) == ANNOTATION_AND_BLOCK_REMOVED) || (annotationDecision.get(x) == ANNOTATION_REMOVED))) {
-							makeIf = true;
+						if (children.get(x) instanceof IfBlock) {
+							if ((annotationDecision.get(x) == ANNOTATION_AND_BLOCK_REMOVED) || (annotationDecision.get(x) == ANNOTATION_REMOVED)) {
+								makeIf = true;
+								break;
+							} else {
+								makeIf = false;
+								break;
+							}
 						}
 					}
 
