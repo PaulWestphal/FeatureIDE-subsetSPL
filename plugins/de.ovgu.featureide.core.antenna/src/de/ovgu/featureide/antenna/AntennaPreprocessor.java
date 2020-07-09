@@ -817,7 +817,21 @@ public class AntennaPreprocessor extends PPComposerExtensionClass {
 				// annotation anpassen, dafür afternode zu string verarbeiten
 
 				if (block instanceof ElifBlock) {
-					if (annotationDecision.get(i - 1) == ANNOTATION_AND_BLOCK_REMOVED) {
+					boolean makeIf = false;
+
+					// if all previous blocks have been removed
+					for (int x = i - 1; x >= 0; x--) {
+						if (children.get(x) instanceof ElifBlock) {
+							continue;
+						}
+
+						if ((children.get(x) instanceof IfBlock)
+							&& ((annotationDecision.get(x) == ANNOTATION_AND_BLOCK_REMOVED) || (annotationDecision.get(x) == ANNOTATION_REMOVED))) {
+							makeIf = true;
+						}
+					}
+
+					if (makeIf) {
 						// Make an if annotation
 						lines.set(block.getStartLine(),
 								translateNodeToAntennaStatement(replaceLiterals(((ElifBlock) block).getElifNode(), features, true), false));
