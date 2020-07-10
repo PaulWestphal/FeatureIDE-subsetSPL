@@ -119,7 +119,7 @@ public class PartialFeatureProjectBuilder {
 		}
 
 		// Features that are now core features because they were selected in the configuration
-		final ArrayList<String> coreFeatures = new ArrayList<String>();
+		final ArrayList<String> coreFeatures = new ArrayList<String>(selectedFeatures);
 		if (!coreFeatures.isEmpty()) {
 			Node coreFeaturesConstraintNode = new Literal(coreFeatures.get(0));
 			for (int i = 1; i < coreFeatures.size(); i++) {
