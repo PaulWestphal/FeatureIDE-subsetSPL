@@ -27,7 +27,10 @@ import java.util.List;
 
 import org.eclipse.core.commands.ExecutionException;
 import org.eclipse.core.resources.IProject;
+import org.eclipse.core.resources.IResource;
 import org.eclipse.core.resources.ResourcesPlugin;
+import org.eclipse.core.runtime.CoreException;
+import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.jface.dialogs.Dialog;
 import org.eclipse.jface.operation.IRunnableWithProgress;
@@ -41,6 +44,7 @@ import org.eclipse.ui.wizards.newresource.BasicNewResourceWizard;
 import de.ovgu.featureide.core.CorePlugin;
 import de.ovgu.featureide.core.IFeatureProject;
 import de.ovgu.featureide.core.builder.PartialFeatureProjectBuilder;
+import de.ovgu.featureide.fm.core.configuration.Configuration;
 import de.ovgu.featureide.fm.ui.FMUIPlugin;
 import de.ovgu.featureide.ui.UIPlugin;
 
@@ -114,8 +118,25 @@ public class NewPartialFeatureProjectWizard extends BasicNewResourceWizard {
 		IFeatureProject newFeatureProject = CorePlugin.getFeatureProject(newProject);
 		while ((newFeatureProject = CorePlugin.getFeatureProject(newProject)) == null) {}
 
-		final java.nio.file.Path configPath = Paths.get(baseProject.getConfigPath() + "/" + page1.getSelectedConfiguration());
-		final PartialFeatureProjectBuilder builder = new PartialFeatureProjectBuilder(newFeatureProject, configPath);
+		Configuration config = null;
+
+		IResource[] configFolder = null;
+		try {
+			configFolder = baseProject.getConfigFolder().members();
+		} catch (final CoreException e) {
+			e.printStackTrace();
+		}
+
+		for (final IResource res : configFolder) {
+			if (res.getName().equals(page1.getSelectedConfiguration())) {
+				final IPath path = res.getFullPath();
+				final String configPath = ResourcesPlugin.getWorkspace().getRoot().getLocation().toString() + res.getFullPath();
+				config = baseProject.loadConfiguration(Paths.get(configPath));
+				break;
+			}
+		}
+
+		final PartialFeatureProjectBuilder builder = new PartialFeatureProjectBuilder(newFeatureProject, config);
 		builder.transformProject();
 
 		return true;

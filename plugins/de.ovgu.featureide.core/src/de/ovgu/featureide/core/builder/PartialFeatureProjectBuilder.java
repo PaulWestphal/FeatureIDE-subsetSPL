@@ -27,7 +27,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import org.eclipse.core.resources.IContainer;
 import org.eclipse.core.resources.IResource;
+import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.CoreException;
 import org.prop4j.And;
 import org.prop4j.False;
@@ -37,14 +39,18 @@ import org.prop4j.Not;
 import org.prop4j.True;
 
 import de.ovgu.featureide.core.IFeatureProject;
+import de.ovgu.featureide.fm.core.FMCorePlugin;
 import de.ovgu.featureide.fm.core.base.IConstraint;
 import de.ovgu.featureide.fm.core.base.IFeature;
 import de.ovgu.featureide.fm.core.base.IFeatureModel;
 import de.ovgu.featureide.fm.core.base.IFeatureStructure;
 import de.ovgu.featureide.fm.core.base.impl.Constraint;
 import de.ovgu.featureide.fm.core.configuration.Configuration;
-import de.ovgu.featureide.fm.core.io.manager.ConfigurationManager;
+import de.ovgu.featureide.fm.core.configuration.XMLConfFormat;
+import de.ovgu.featureide.fm.core.io.EclipseFileSystem;
+import de.ovgu.featureide.fm.core.io.IPersistentFormat;
 import de.ovgu.featureide.fm.core.io.manager.FeatureModelManager;
+import de.ovgu.featureide.fm.core.io.manager.SimpleFileHandler;
 
 /**
  * Modifies the copy of a FeatureIDE project using a configuration, such that it becomes a subset of the original project.
@@ -54,21 +60,19 @@ import de.ovgu.featureide.fm.core.io.manager.FeatureModelManager;
 public class PartialFeatureProjectBuilder {
 
 	private final IFeatureProject project;
-	private Configuration config;
+	private final Configuration config;
 	private IFeatureModel modifiedModel;
 
-	private final Path configPath;
+	private final String CONFIG_NAME = "base_configuration.xml";
 
-	public PartialFeatureProjectBuilder(IFeatureProject project, Path configPath) {
+	public PartialFeatureProjectBuilder(IFeatureProject project, Configuration config) {
 
 		this.project = project;
-		this.configPath = configPath;
+		this.config = config;
 	}
 
 	public void transformProject() {
-		config = getConfiguration();
-		project.setCurrentConfiguration(configPath);
-		deleteConfigurations();
+		manageConfigurations();
 
 		final ArrayList<String> featureNameList = getFeatureNames();
 		final ArrayList<String> removedFeatureNameList = new ArrayList<String>(config.getUnselectedFeatureNames());
@@ -184,7 +188,7 @@ public class PartialFeatureProjectBuilder {
 		return children;
 	}
 
-	private void deleteConfigurations() {
+	private void manageConfigurations() {
 		final ArrayList<IResource> configurations = new ArrayList<IResource>();
 		try {
 			Collections.addAll(configurations, project.getConfigFolder().members());
@@ -192,15 +196,27 @@ public class PartialFeatureProjectBuilder {
 			e.printStackTrace();
 		}
 
+		// delete all configs
 		for (final IResource resource : configurations) {
-			if (!resource.getName().equals(configPath.getFileName().toString())) {
-				try {
-					resource.delete(true, null);
-				} catch (final CoreException e) {
-					e.printStackTrace();
-				}
+			try {
+				resource.delete(true, null);
+			} catch (final CoreException e) {
+				e.printStackTrace();
 			}
 		}
+
+		final Path configPath = Paths.get(project.getConfigPath());
+
+		project.setCurrentConfiguration(configPath);
+		final IContainer container = ResourcesPlugin.getWorkspace().getRoot().getContainerForLocation(EclipseFileSystem.getIPath(configPath));
+		if (!container.exists()) {
+			if (project.getProject().isAccessible()) {
+				FMCorePlugin.createFolder(project.getProject(), container.getProjectRelativePath().toString());
+			}
+		}
+		final Path file = configPath.resolve(CONFIG_NAME);
+		final IPersistentFormat<Configuration> format = new XMLConfFormat();
+		SimpleFileHandler.save(file, config, format);
 	}
 
 	private ArrayList<String> getFeatureNames() {
@@ -208,13 +224,5 @@ public class PartialFeatureProjectBuilder {
 		featureNameList.addAll(config.getSelectedFeatureNames());
 		featureNameList.addAll(config.getUndefinedFeatureNames());
 		return featureNameList;
-	}
-
-	private Configuration getConfiguration() {
-		if (ConfigurationManager.isFileSupported(configPath)) {
-			return ConfigurationManager.getInstance(configPath).getObject();
-		} else {
-			return null;
-		}
 	}
 }
