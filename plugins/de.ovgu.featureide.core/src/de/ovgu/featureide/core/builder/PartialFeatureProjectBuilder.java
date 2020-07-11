@@ -110,7 +110,7 @@ public class PartialFeatureProjectBuilder {
 		// Features that are now dead because their parents get removed
 		final ArrayList<String> deadFeatures = new ArrayList<String>();
 		for (final String feature : removedFeatures) {
-			deadFeatures.addAll(getAllChildren(new ArrayList<String>(), feature, model));
+			deadFeatures.addAll(getAllChildren(model.getFeature(feature).getStructure()));
 		}
 		deadFeatures.removeAll(removedFeatures);
 
@@ -175,17 +175,13 @@ public class PartialFeatureProjectBuilder {
 		}
 	}
 
-	private ArrayList<String> getAllChildren(ArrayList<String> children, String feature, IFeatureModel model) {
-
-		children.add(feature);
-
-		final List<IFeatureStructure> nextChildren = model.getFeature(feature).getStructure().getChildren();
-
-		for (final IFeatureStructure child : nextChildren) {
-
-			getAllChildren(children, child.getFeature().getName(), model);
+	private ArrayList<String> getAllChildren(IFeatureStructure feature) {
+		final ArrayList<String> features = new ArrayList<String>();
+		features.add(feature.getFeature().getName());
+		for (final IFeatureStructure child : feature.getChildren()) {
+			features.addAll(getAllChildren(child));
 		}
-		return children;
+		return features;
 	}
 
 	private void manageConfigurations() {
@@ -207,7 +203,6 @@ public class PartialFeatureProjectBuilder {
 
 		final Path configPath = Paths.get(project.getConfigPath());
 
-		project.setCurrentConfiguration(configPath);
 		final IContainer container = ResourcesPlugin.getWorkspace().getRoot().getContainerForLocation(EclipseFileSystem.getIPath(configPath));
 		if (!container.exists()) {
 			if (project.getProject().isAccessible()) {
@@ -217,11 +212,13 @@ public class PartialFeatureProjectBuilder {
 		final Path file = configPath.resolve(CONFIG_NAME);
 		final IPersistentFormat<Configuration> format = new XMLConfFormat();
 		SimpleFileHandler.save(file, config, format);
+
+		project.setCurrentConfiguration(file);
 	}
 
 	private ArrayList<String> getFeatureNames() {
 		final ArrayList<String> featureNameList = new ArrayList<String>();
-		featureNameList.addAll(config.getSelectedFeatureNames());
+
 		featureNameList.addAll(config.getUndefinedFeatureNames());
 		return featureNameList;
 	}
