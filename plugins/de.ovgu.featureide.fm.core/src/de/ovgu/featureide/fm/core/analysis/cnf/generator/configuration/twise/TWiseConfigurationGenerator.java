@@ -167,9 +167,11 @@ public class TWiseConfigurationGenerator extends AConfigurationGenerator impleme
 			util = new TWiseConfigurationUtil(cnf, solver);
 		}
 		util.setMaxSampleSize(maxSampleSize);
+
 		util.setRandom(getRandom());
 
 		util.computeRandomSample();
+
 		if (!util.getCnf().getClauses().isEmpty()) {
 			util.computeMIG();
 		}

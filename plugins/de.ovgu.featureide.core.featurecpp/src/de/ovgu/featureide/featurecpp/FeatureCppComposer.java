@@ -20,7 +20,6 @@
  */
 package de.ovgu.featureide.featurecpp;
 
-import static de.ovgu.featureide.fm.core.localization.StringTable.EQUATION;
 import static de.ovgu.featureide.fm.core.localization.StringTable.IS_NOT_INSTALLED_;
 import static de.ovgu.featureide.fm.core.localization.StringTable.THE_REQUIRED_BUNDLE;
 
@@ -47,7 +46,9 @@ import de.ovgu.featureide.core.builder.IComposerExtensionClass;
 import de.ovgu.featureide.featurecpp.model.FeatureCppModelBuilder;
 import de.ovgu.featureide.featurecpp.wrapper.FeatureCppWrapper;
 import de.ovgu.featureide.fm.core.configuration.Configuration;
+import de.ovgu.featureide.fm.core.configuration.EquationFormat;
 import de.ovgu.featureide.fm.core.io.EclipseFileSystem;
+import de.ovgu.featureide.fm.core.io.IConfigurationFormat;
 
 /**
  * A FeatureIDE extension to compose FeatureC++ files.
@@ -235,8 +236,8 @@ public class FeatureCppComposer extends ComposerExtensionClass {
 	}
 
 	@Override
-	public String getConfigurationExtension() {
-		return EQUATION;
+	public IConfigurationFormat getConfigurationFormat() {
+		return new EquationFormat();
 	}
 
 	@Override
@@ -264,7 +265,7 @@ public class FeatureCppComposer extends ComposerExtensionClass {
 
 			final InputStream source = new ByteArrayInputStream(stringBuilder.toString().getBytes(Charset.availableCharsets().get("UTF-8")));
 
-			final IFile file = parentFolder.getFile("temp." + getConfigurationExtension());
+			final IFile file = parentFolder.getFile("temp." + getConfigurationFormat().getSuffix());
 			try {
 				if (file.exists()) {
 					file.setContents(source, false, true, null);
@@ -290,7 +291,7 @@ public class FeatureCppComposer extends ComposerExtensionClass {
 		featureCpp.initialize(null, folder);
 		try {
 			for (final IResource res : folder.members()) {
-				if ((res instanceof IFile) && getConfigurationExtension().equals(res.getFileExtension())) {
+				if ((res instanceof IFile) && getConfigurationFormat().getSuffix().equals(res.getFileExtension())) {
 					featureCpp.compose(createTemporaryConfigrationFile(EclipseFileSystem.getPath(res)));
 				}
 			}

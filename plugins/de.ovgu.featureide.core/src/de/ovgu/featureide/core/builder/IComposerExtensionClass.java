@@ -37,6 +37,7 @@ import org.eclipse.core.runtime.CoreException;
 
 import de.ovgu.featureide.core.fstmodel.preprocessor.FSTDirective;
 import de.ovgu.featureide.fm.core.configuration.Configuration;
+import de.ovgu.featureide.fm.core.io.IConfigurationFormat;
 import de.ovgu.featureide.fm.core.io.IFeatureModelFormat;
 
 /**
@@ -179,10 +180,10 @@ public interface IComposerExtensionClass extends IComposerExtensionBase {
 
 	/**
 	 *
-	 * @return the default configuration extension.
+	 * @return the default configuration format. Extension can be extracted via getSuffix().
 	 */
 	@Nonnull
-	String getConfigurationExtension();
+	IConfigurationFormat getConfigurationFormat();
 
 	/**
 	 * @return <code>true</code> if the composition can be called parallel
