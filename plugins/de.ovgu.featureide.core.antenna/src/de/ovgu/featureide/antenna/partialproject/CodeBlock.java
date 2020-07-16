@@ -40,13 +40,9 @@ public class CodeBlock {
 		startLine = 0;
 	}
 
-	protected CodeBlock(int startLine, Node node, String line) {
+	protected CodeBlock(int startLine, Node node) {
 		this.startLine = startLine;
 		this.node = node;
-	}
-
-	public CodeBlock(int startLine, Node node) {
-		this.startLine = startLine;
 	}
 
 	public int getStartLine() {

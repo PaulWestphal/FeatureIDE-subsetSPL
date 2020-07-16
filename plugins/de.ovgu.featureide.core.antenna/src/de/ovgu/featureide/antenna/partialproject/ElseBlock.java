@@ -29,7 +29,7 @@ import org.prop4j.Node;
  */
 public class ElseBlock extends CodeBlock {
 
-	public ElseBlock(int startLine, Node node, String line) {
-		super(startLine, node, line);
+	public ElseBlock(int startLine, Node node) {
+		super(startLine, node);
 	}
 }

@@ -31,9 +31,9 @@ public class ElifBlock extends CodeBlock {
 
 	private final Node elifNode;
 
-	public ElifBlock(int startLine, Node node, String line) {
-		super(startLine, node, line);
-		elifNode = node.getChildren()[1];
+	public ElifBlock(int startLine, Node fullNode, Node elifNode) {
+		super(startLine, fullNode);
+		this.elifNode = elifNode;
 	}
 
 	public Node getElifNode() {

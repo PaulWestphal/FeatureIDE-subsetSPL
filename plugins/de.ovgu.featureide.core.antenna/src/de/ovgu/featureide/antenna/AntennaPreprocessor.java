@@ -788,27 +788,6 @@ public class AntennaPreprocessor extends PPComposerExtensionClass {
 				}
 			}
 
-			if (block instanceof ElseBlock) {
-				// special case for else block, look at previous annotation
-				if (annotationDecision.get(i - 1) == ANNOTATION_KEPT) {
-					annotationDecision.add(ANNOTATION_KEPT);
-					updateAnnotations(block.getChildren(), lines, features);
-					continue;
-				} else if (annotationDecision.get(i - 1) == ANNOTATION_REMOVED) {
-					for (int line = block.getStartLine(); line <= (block.getEndLine() - 1); line++) {
-						lines.set(line, "");
-					}
-					annotationDecision.add(ANNOTATION_AND_BLOCK_REMOVED);
-					updateAnnotations(block.getChildren(), lines, features);
-					continue;
-				} else if (annotationDecision.get(i - 1) == ANNOTATION_AND_BLOCK_REMOVED) {
-					lines.set(block.getStartLine(), "");
-					annotationDecision.add(ANNOTATION_REMOVED);
-					continue;
-				}
-				break;
-			}
-
 			if (!containsDeletedFeature) {
 				// node stayed the same
 				annotationDecision.add(ANNOTATION_KEPT);
@@ -856,8 +835,10 @@ public class AntennaPreprocessor extends PPComposerExtensionClass {
 						lines.set(block.getStartLine(), translateNodeToAntennaStatement(((ElifBlock) block).getElifNode(), true));
 						annotationDecision.add(ANNOTATION_KEPT);
 					}
-				} else {
+				} else if (block instanceof IfBlock) {
 					lines.set(block.getStartLine(), translateNodeToAntennaStatement(afterNode, false));
+					annotationDecision.add(ANNOTATION_KEPT);
+				} else if (block instanceof ElseBlock) {
 					annotationDecision.add(ANNOTATION_KEPT);
 				}
 			} else if (new SatSolver(beforeNode, 1000).hasSolution() && (afterNode instanceof False)) {
@@ -892,12 +873,14 @@ public class AntennaPreprocessor extends PPComposerExtensionClass {
 							annotationDecision.add(ANNOTATION_KEPT);
 						}
 					}
-				} else {
+				} else if (block instanceof IfBlock) {
 					lines.set(block.getStartLine(), translateNodeToAntennaStatement(replaceLiterals(beforeNode, features, false), false));
+					annotationDecision.add(ANNOTATION_KEPT);
+				} else if (block instanceof ElseBlock) {
 					annotationDecision.add(ANNOTATION_KEPT);
 				}
 			} else {
-				// I don't think there are any other possible cases.
+				// If there are any other cases, add them here.
 			}
 
 			// recursively do the same for children if they haven't already been deleted
@@ -1065,7 +1048,6 @@ public class AntennaPreprocessor extends PPComposerExtensionClass {
 	 */
 	private void lookForCodeBlocks(CodeBlock parentBlock, int firstLine, int lastLine, Vector<String> lines) {
 		CodeBlock block = null;
-		Node lastNode = null;
 		int ifcount = 0;
 		for (int currentLine = firstLine; currentLine <= lastLine; currentLine++) {
 			final String line = lines.get(currentLine);
@@ -1073,38 +1055,34 @@ public class AntennaPreprocessor extends PPComposerExtensionClass {
 			if (containsPreprocessorDirective(line, "ifdef|ifndef|condition|elifdef|elifndef|if|else|elif")) {
 				if (containsPreprocessorDirective(line, "ifdef|ifndef|condition|if")) {
 					if (block == null) {
-						// last Node needs to be saved for elif
-						lastNode = nodereader.stringToNode(convertLineForNodeReader(line));
-
-						block = new IfBlock(currentLine, lastNode, line);
+						block = new IfBlock(currentLine, nodereader.stringToNode(convertLineForNodeReader(line)));
 					} else {
 						ifcount++;
 					}
 				} else if (containsPreprocessorDirective(line, "elifdef|elifndef|else|elif")) {
 					if (block == null) {
 						if (containsPreprocessorDirective(line, "else")) {
-							block = new ElseBlock(currentLine, null, line);
+							// This is never supposed to happen, invalid input
+							block = new ElseBlock(currentLine, null);
 						} else if (containsPreprocessorDirective(line, "elif")) {
-							block = new ElifBlock(currentLine, null, line);
+							block = new ElifBlock(currentLine, null, null);
 						}
 					} else if ((ifcount == 0) && (block != null)) {
 						if (containsPreprocessorDirective(line, "else")) {
 							block.setEndLine(currentLine);
 							parentBlock.addChild(block);
-							lastNode = new Not(lastNode);
 
-							block = new ElseBlock(currentLine, lastNode, line);
+							final Node buildNode = getPreviousNodesNegated(parentBlock);
+
+							block = new ElseBlock(currentLine, new Not(buildNode));
 						} else if (containsPreprocessorDirective(line, "elif")) {
 							block.setEndLine(currentLine);
 							parentBlock.addChild(block);
 
-							final Node notNode = new Not(lastNode);
+							final Node buildNode = getPreviousNodesNegated(parentBlock);
 							final Node elifNode = nodereader.stringToNode(convertLineForNodeReader(line));
 
-							final Node[] nodes = { notNode, elifNode };
-							lastNode = new And(nodes);
-
-							block = new ElifBlock(currentLine, lastNode, line);
+							block = new ElifBlock(currentLine, new And(buildNode, elifNode), elifNode);
 						}
 					}
 				}
@@ -1119,6 +1097,36 @@ public class AntennaPreprocessor extends PPComposerExtensionClass {
 				}
 			}
 		}
+	}
+
+	/**
+	 * @param parentBlock
+	 * @param buildNode
+	 * @return
+	 */
+	private Node getPreviousNodesNegated(CodeBlock parentBlock) {
+		Node buildNode = null;
+		for (int i = parentBlock.getChildren().size() - 1; i >= 0; i--) {
+			final CodeBlock currentBlock = parentBlock.getChildren().get(i);
+			if (buildNode == null) {
+				if (currentBlock instanceof IfBlock) {
+					buildNode = new Not(currentBlock.getNode());
+					break;
+				} else if (currentBlock instanceof ElifBlock) {
+					buildNode = new Not(((ElifBlock) currentBlock).getElifNode());
+					continue;
+				}
+			} else {
+				if (currentBlock instanceof IfBlock) {
+					buildNode = new And(buildNode, new Not(currentBlock.getNode()));
+					break;
+				} else if (currentBlock instanceof ElifBlock) {
+					buildNode = new And(buildNode, new Not(((ElifBlock) currentBlock).getElifNode()));
+					continue;
+				}
+			}
+		}
+		return buildNode;
 	}
 
 	@Override

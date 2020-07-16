@@ -29,7 +29,7 @@ import org.prop4j.Node;
  */
 public class IfBlock extends CodeBlock {
 
-	public IfBlock(int startLine, Node node, String line) {
-		super(startLine, node, line);
+	public IfBlock(int startLine, Node node) {
+		super(startLine, node);
 	}
 }
