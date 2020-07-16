@@ -1074,7 +1074,7 @@ public class AntennaPreprocessor extends PPComposerExtensionClass {
 
 							final Node buildNode = getPreviousNodesNegated(parentBlock);
 
-							block = new ElseBlock(currentLine, new Not(buildNode));
+							block = new ElseBlock(currentLine, buildNode);
 						} else if (containsPreprocessorDirective(line, "elif")) {
 							block.setEndLine(currentLine);
 							parentBlock.addChild(block);
