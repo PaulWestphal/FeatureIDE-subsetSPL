@@ -66,7 +66,6 @@ public class PartialFeatureProjectBuilder {
 	private final String CONFIG_NAME = "base_configuration.xml";
 
 	public PartialFeatureProjectBuilder(IFeatureProject project, Configuration config) {
-
 		this.project = project;
 		this.config = config;
 	}
@@ -74,12 +73,11 @@ public class PartialFeatureProjectBuilder {
 	public void transformProject() {
 		manageConfigurations();
 
-		final ArrayList<String> featureNameList = getFeatureNames();
 		final ArrayList<String> removedFeatureNameList = new ArrayList<String>(config.getUnselectedFeatureNames());
 		final ArrayList<String> selectedFeatureNameList = new ArrayList<String>();
 		selectedFeatureNameList.addAll(config.getSelectedFeatureNames());
 
-		modifiedModel = modifyFeatureModel(project.getFeatureModel(), featureNameList, removedFeatureNameList, selectedFeatureNameList);
+		modifiedModel = modifyFeatureModel(project.getFeatureModel(), removedFeatureNameList, selectedFeatureNameList);
 
 		final Path fmPath = Paths.get(project.getFeatureModel().getSourceFile().toString().replace("\\", "/"));
 		FeatureModelManager.save(modifiedModel, fmPath, project.getComposer().getFeatureModelFormat());
@@ -92,8 +90,7 @@ public class PartialFeatureProjectBuilder {
 		}
 	}
 
-	private IFeatureModel modifyFeatureModel(IFeatureModel model, ArrayList<String> keptFeatures, ArrayList<String> removedFeatures,
-			ArrayList<String> selectedFeatures) {
+	private IFeatureModel modifyFeatureModel(IFeatureModel model, ArrayList<String> removedFeatures, ArrayList<String> selectedFeatures) {
 		final List<IConstraint> modelconstraints = model.getConstraints();
 		final ArrayList<IConstraint> constraints = new ArrayList<IConstraint>();
 		constraints.addAll(modelconstraints);
@@ -216,10 +213,4 @@ public class PartialFeatureProjectBuilder {
 		project.setCurrentConfiguration(file);
 	}
 
-	private ArrayList<String> getFeatureNames() {
-		final ArrayList<String> featureNameList = new ArrayList<String>();
-
-		featureNameList.addAll(config.getUndefinedFeatureNames());
-		return featureNameList;
-	}
 }
