@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<featureModel>
+	<properties>
+		<graphics key="showhiddenfeatures" value="true"/>
+		<graphics key="legendautolayout" value="true"/>
+		<graphics key="showshortnames" value="false"/>
+		<graphics key="layout" value="vertical"/>
+		<graphics key="showcollapsedconstraints" value="true"/>
+		<graphics key="legendhidden" value="false"/>
+		<graphics key="layoutalgorithm" value="4"/>
+	</properties>
+	<struct>
+		<and abstract="true" mandatory="true" name="Automated_Teller_Machine">
+			<or abstract="true" mandatory="true" name="Language">
+				<feature name="English"/>
+				<feature name="German"/>
+				<feature name="French"/>
+			</or>
+			<alt abstract="true" mandatory="true" name="Currency">
+				<feature name="EUR"/>
+				<feature name="GBP"/>
+			</alt>
+			<and name="Bank_Statement">
+				<feature name="Print_Statement"/>
+			</and>
+			<or name="Deposit">
+				<feature name="Deposit_Cash"/>
+				<feature name="Deposit_Cheques"/>
+			</or>
+			<and name="Withdraw_Cash">
+				<feature name="Coins"/>
+			</and>
+			<feature name="Printer"/>
+			<alt mandatory="true" name="Authentication">
+				<and name="PIN">
+					<feature name="Change_PIN"/>
+				</and>
+				<feature name="Password"/>
+				<feature name="Facial_Recognition"/>
+				<feature name="Iris_Scan"/>
+			</alt>
+		</and>
+	</struct>
+	<constraints>
+		<rule>
+			<imp>
+				<var>Print_Statement</var>
+				<var>Printer</var>
+			</imp>
+		</rule>
+		<rule>
+			<imp>
+				<var>GBP</var>
+				<not>
+					<var>Coins</var>
+				</not>
+			</imp>
+		</rule>
+	</constraints>
+</featureModel>

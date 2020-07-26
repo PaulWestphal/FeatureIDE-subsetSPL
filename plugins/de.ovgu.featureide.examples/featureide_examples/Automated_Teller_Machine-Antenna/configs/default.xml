@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<configuration>
+	<feature automatic="selected" name="Automated_Teller_Machine"/>
+	<feature automatic="selected" name="Language"/>
+	<feature name="English"/>
+	<feature name="German"/>
+	<feature manual="unselected" name="French"/>
+	<feature automatic="selected" name="Currency"/>
+	<feature automatic="unselected" name="EUR"/>
+	<feature manual="selected" name="GBP"/>
+	<feature automatic="selected" manual="selected" name="Bank_Statement"/>
+	<feature manual="selected" name="Print_Statement"/>
+	<feature automatic="selected" name="Deposit"/>
+	<feature manual="selected" name="Deposit_Cash"/>
+	<feature manual="selected" name="Deposit_Cheques"/>
+	<feature name="Withdraw_Cash"/>
+	<feature automatic="unselected" name="Coins"/>
+	<feature automatic="selected" name="Printer"/>
+	<feature automatic="selected" name="Authentication"/>
+	<feature name="PIN"/>
+	<feature name="Change_PIN"/>
+	<feature name="Password"/>
+	<feature manual="unselected" name="Facial_Recognition"/>
+	<feature manual="unselected" name="Iris_Scan"/>
+</configuration>
