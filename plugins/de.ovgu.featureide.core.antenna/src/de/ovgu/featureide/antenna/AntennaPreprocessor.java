@@ -38,7 +38,6 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
-import java.util.List;
 import java.util.Vector;
 import java.util.regex.Pattern;
 
@@ -54,13 +53,11 @@ import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.jobs.Job;
 import org.prop4j.And;
-import org.prop4j.Equals;
 import org.prop4j.False;
 import org.prop4j.Literal;
 import org.prop4j.Node;
 import org.prop4j.NodeReader.ErrorHandling;
 import org.prop4j.Not;
-import org.prop4j.Or;
 import org.prop4j.SatSolver;
 import org.prop4j.True;
 import org.sat4j.specs.TimeoutException;
@@ -701,12 +698,12 @@ public class AntennaPreprocessor extends PPComposerExtensionClass {
 	}
 
 	@Override
-	public void buildPartialFeatureProjectAssets(IFolder sourceFolder, ArrayList<String> removedFeatures, ArrayList<String> mandatoryFeatures)
+	public void buildPartialFeatureProjectAssets(IFolder sourceFolder, ArrayList<String> removedFeatures, ArrayList<String> coreFeatures)
 			throws IOException, CoreException {
 		for (final IResource res : sourceFolder.members()) {
 			if (res instanceof IFolder) {
 				// for folders do recursively
-				buildPartialFeatureProjectAssets((IFolder) res, removedFeatures, mandatoryFeatures);
+				buildPartialFeatureProjectAssets((IFolder) res, removedFeatures, coreFeatures);
 			} else if (res instanceof IFile) {
 				// delete all existing builder markers
 
@@ -778,7 +775,7 @@ public class AntennaPreprocessor extends PPComposerExtensionClass {
 			final Node afterNode;
 
 			beforeNode = block.getNode();
-			afterNode = replaceLiterals(beforeNode, features, true);
+			afterNode = Node.replaceLiterals(beforeNode, features, true);
 			// check if anything even needs to be changed for this node
 			boolean containsDeletedFeature = false;
 			for (final String featureName : beforeNode.getContainedFeatures()) {
@@ -824,9 +821,9 @@ public class AntennaPreprocessor extends PPComposerExtensionClass {
 					if (makeIf) {
 						// Make an if annotation
 						lines.set(block.getStartLine(),
-								translateNodeToAntennaStatement(replaceLiterals(((ElifBlock) block).getElifNode(), features, true), false));
+								translateNodeToAntennaStatement(Node.replaceLiterals(((ElifBlock) block).getElifNode(), features, true), false));
 						annotationDecision.add(ANNOTATION_KEPT);
-					} else if (replaceLiterals(((ElifBlock) block).getElifNode(), features, false) instanceof True) {
+					} else if (Node.replaceLiterals(((ElifBlock) block).getElifNode(), features, false) instanceof True) {
 						// Make an else annotation
 						lines.set(block.getStartLine(), "//#else");
 						annotationDecision.add(ANNOTATION_KEPT);
@@ -857,24 +854,24 @@ public class AntennaPreprocessor extends PPComposerExtensionClass {
 				|| (!new SatSolver(new Not(beforeNode), 1000).hasSolution() && (afterNode instanceof True))) {
 				// afterNode is a contradiction or a tautology, but not because of the removal of a feature
 				if (block instanceof ElifBlock) {
-					if ((replaceLiterals(((ElifBlock) block).getElifNode(), features, false) instanceof False)
-						|| (replaceLiterals(((ElifBlock) block).getElifNode(), features, false) instanceof True)) {
+					if ((Node.replaceLiterals(((ElifBlock) block).getElifNode(), features, false) instanceof False)
+						|| (Node.replaceLiterals(((ElifBlock) block).getElifNode(), features, false) instanceof True)) {
 						lines.set(block.getStartLine(), "//#else");
 						annotationDecision.add(ANNOTATION_KEPT);
 					} else {
 						if (annotationDecision.get(i - 1) == ANNOTATION_KEPT) {
 							lines.set(block.getStartLine(),
-									translateNodeToAntennaStatement(replaceLiterals(((ElifBlock) block).getElifNode(), features, false), true));
+									translateNodeToAntennaStatement(Node.replaceLiterals(((ElifBlock) block).getElifNode(), features, false), true));
 							annotationDecision.add(ANNOTATION_KEPT);
 						} else {
 							// make an if
 							lines.set(block.getStartLine(),
-									translateNodeToAntennaStatement(replaceLiterals(((ElifBlock) block).getElifNode(), features, false), false));
+									translateNodeToAntennaStatement(Node.replaceLiterals(((ElifBlock) block).getElifNode(), features, false), false));
 							annotationDecision.add(ANNOTATION_KEPT);
 						}
 					}
 				} else if (block instanceof IfBlock) {
-					lines.set(block.getStartLine(), translateNodeToAntennaStatement(replaceLiterals(beforeNode, features, false), false));
+					lines.set(block.getStartLine(), translateNodeToAntennaStatement(Node.replaceLiterals(beforeNode, features, false), false));
 					annotationDecision.add(ANNOTATION_KEPT);
 				} else if (block instanceof ElseBlock) {
 					annotationDecision.add(ANNOTATION_KEPT);
@@ -937,108 +934,6 @@ public class AntennaPreprocessor extends PPComposerExtensionClass {
 		statement = statement.replace("|", " || ");
 		statement = statement.replace("-", "!");
 		return line + statement;
-	}
-
-	private Node replaceLiterals(Node node, ArrayList<String> features, boolean resolve) {
-		if (node instanceof And) {
-			final List<Node> children = new ArrayList<>();
-			for (final Node child : node.getChildren()) {
-				final Node newchild = replaceLiterals(child, features, resolve);
-
-				// check if children already contains negation of child, which makes it a contradiction
-				if (resolve) {
-					if (children.contains(new Not(newchild))) {
-						return new False();
-					}
-					if (newchild instanceof Not) {
-						if (children.contains(((Not) newchild).getChildren()[0])) {
-							return new False();
-						}
-					}
-				}
-
-				if (newchild instanceof False) {
-					return newchild;
-				} else if (newchild instanceof True) {
-					continue;
-				} else {
-					children.add(newchild);
-				}
-			}
-
-			if (children.size() > 1) {
-				return new And(children);
-			} else if (children.size() == 1) {
-				return children.get(0);
-			} else if (children.size() == 0) {
-				return new True();
-			}
-
-		} else if (node instanceof Or) {
-			final List<Node> children = new ArrayList<Node>();
-			for (final Node child : node.getChildren()) {
-				final Node newchild = replaceLiterals(child, features, resolve);
-
-				// check if children already contains negation of child, which makes it a tautology
-				if (resolve) {
-					if (children.contains(new Not(newchild))) {
-						return new True();
-					}
-					if (newchild instanceof Not) {
-						if (children.contains(((Not) newchild).getChildren()[0])) {
-							return new True();
-						}
-					}
-				}
-
-				if (newchild instanceof False) {
-					continue;
-				} else if (newchild instanceof True) {
-					return newchild;
-				} else {
-					children.add(newchild);
-				}
-			}
-			if (children.size() > 1) {
-				return new Or(children);
-			} else if (children.size() == 1) {
-				return children.get(0);
-			} else if (children.size() == 0) {
-				return new False();
-			}
-
-		} else if (node instanceof Literal) {
-			if (features.contains(((Literal) node).getContainedFeatures().get(0))) {
-				return new False();
-			} else {
-				return node;
-			}
-		} else if (node instanceof Not) {
-			final Node child = replaceLiterals(node.getChildren()[0], features, resolve);
-			if (child instanceof False) {
-				return new True();
-			} else if (child instanceof True) {
-				return new False();
-			} else {
-				return new Not(child);
-			}
-		} else if (node instanceof Equals) {
-			// todo: make sure this works
-			final Node leftChild = replaceLiterals(node.getChildren()[0], features, resolve);
-			final Node rightChild = replaceLiterals(node.getChildren()[1], features, resolve);
-			if (leftChild instanceof True) {
-				return rightChild;
-			} else if (rightChild instanceof True) {
-				return leftChild;
-			} else if (leftChild instanceof False) {
-				return new Not(rightChild);
-			} else if (rightChild instanceof False) {
-				return new Not(leftChild);
-			} else {
-				return node;
-			}
-		}
-		return null;
 	}
 
 	/**
